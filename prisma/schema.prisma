@@ -1,0 +1,365 @@
+// Grainline — Prisma schema
+// Postgres + Prisma. cuid() IDs. Money as Int (paise). Dates as DateTime UTC.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// =====================================================================
+// Enums
+// =====================================================================
+
+enum VillageStatus {
+  pending
+  verified
+  suspended
+}
+
+enum FarmerStatus {
+  pending
+  active
+  paused
+  suspended
+}
+
+enum RiceVariety {
+  sona_masuri
+  bpt_5204
+  basmati
+  jeera_samba
+  red_rice
+  brown_rice
+  hand_pounded_sona
+  other
+}
+
+enum RiceType {
+  raw
+  boiled
+  brown
+  hand_pounded
+}
+
+enum HarvestSeason {
+  kharif
+  rabi
+}
+
+enum ListingStatus {
+  draft
+  active
+  paused
+  out_of_stock
+  archived
+}
+
+enum FulfillmentType {
+  farm_pickup
+  city_pickup_point
+  home_delivery
+}
+
+enum PaymentMethod {
+  upi
+  card
+  cod
+}
+
+enum PaymentStatus {
+  pending
+  paid
+  refunded
+  failed
+}
+
+enum OrderStatus {
+  placed
+  confirmed
+  milling
+  ready
+  picked_up
+  in_transit
+  delivered
+  cancelled
+  disputed
+}
+
+enum SampleStatus {
+  paid
+  shipped
+  delivered
+  redeemed
+}
+
+enum RoutePlanStatus {
+  draft
+  confirmed
+  in_progress
+  completed
+}
+
+enum VisualQuality {
+  excellent
+  good
+  acceptable
+  reject
+}
+
+enum PayoutStatus {
+  pending
+  processing
+  paid
+  failed
+}
+
+enum AdminRole {
+  super_admin
+  ops
+  field_rep
+}
+
+enum WaDirection {
+  inbound
+  outbound
+}
+
+// =====================================================================
+// Models
+// =====================================================================
+
+model Village {
+  id            String        @id @default(cuid())
+  name          String
+  slug          String        @unique
+  district      String
+  state         String
+  lat           Float
+  lng           Float
+  head_name     String
+  head_phone    String
+  story         String?
+  photo_url     String?
+  hub_address   String?
+  status        VillageStatus @default(pending)
+  created_at    DateTime      @default(now())
+  verified_at   DateTime?
+
+  farmers       Farmer[]
+
+  @@index([status])
+}
+
+model Farmer {
+  id                  String       @id @default(cuid())
+  village_id          String
+  phone               String       @unique
+  name                String
+  photo_url           String?
+  upi_id              String
+  aadhaar_last4       String?
+  land_acres          Float?
+  story               String?
+  farming_since_year  Int?
+  rating              Float?
+  total_orders        Int          @default(0)
+  total_kg_sold       Float        @default(0)
+  total_earned        Int          @default(0) // paise
+  status              FarmerStatus @default(pending)
+  enrolled_at         DateTime     @default(now())
+  verified_at         DateTime?
+
+  village             Village      @relation(fields: [village_id], references: [id])
+  listings            Listing[]
+  payouts             Payout[]
+  qc_logs             QCLog[]
+
+  @@index([status])
+  @@index([village_id])
+}
+
+model Listing {
+  id                       String        @id @default(cuid())
+  farmer_id                String
+  variety                  RiceVariety
+  variety_other            String?
+  type                     RiceType
+  is_organic               Boolean       @default(false)
+  organic_certification    String?
+  available_kg             Float
+  price_per_kg             Int           // paise
+  pack_sizes               Json          // [{kg, price_per_kg_paise}]
+  harvest_year             Int?
+  harvest_season           HarvestSeason?
+  is_milled                Boolean       @default(true)
+  milled_on                DateTime?
+  photos                   Json          // string[]
+  description              String?
+  status                   ListingStatus @default(draft)
+  created_at               DateTime      @default(now())
+  updated_at               DateTime      @updatedAt
+
+  farmer                   Farmer        @relation(fields: [farmer_id], references: [id])
+
+  @@index([status, variety])
+  @@index([farmer_id, status])
+}
+
+model Customer {
+  id                   String         @id @default(cuid())
+  phone                String         @unique
+  name                 String
+  email                String?
+  addresses            Json           @default("[]") // [{label, line1, line2, city, pincode, lat, lng}]
+  default_address_idx  Int            @default(0)
+  created_at           DateTime       @default(now())
+
+  orders               Order[]
+  samples              SampleRequest[]
+}
+
+model Order {
+  id                  String          @id @default(cuid())
+  order_number        String          @unique
+  customer_id         String
+  items               Json            // [{listing_id, farmer_id, variety, pack_kg, qty, price_per_kg_paise, subtotal_paise}]
+  fulfillment_type    FulfillmentType
+  delivery_address    Json?
+  delivery_date       DateTime
+  route_plan_id       String?
+  subtotal            Int             // paise
+  delivery_fee        Int             @default(0)
+  cod_fee             Int             @default(0)
+  total               Int
+  commission_pct      Decimal         @default(10.00) @db.Decimal(5, 2)
+  commission_amount   Int
+  farmer_payouts      Json            // [{farmer_id, amount_paise}]
+  payment_method      PaymentMethod
+  payment_status      PaymentStatus   @default(pending)
+  razorpay_order_id   String?
+  razorpay_payment_id String?
+  status              OrderStatus     @default(placed)
+  status_history      Json            @default("[]") // [{status, at, by}]
+  placed_at           DateTime        @default(now())
+  confirmed_at        DateTime?
+  delivered_at        DateTime?
+
+  customer            Customer        @relation(fields: [customer_id], references: [id])
+  route_plan          RoutePlan?      @relation(fields: [route_plan_id], references: [id])
+
+  @@index([status, delivery_date])
+  @@index([customer_id, placed_at(sort: Desc)])
+  @@index([route_plan_id])
+}
+
+model SampleRequest {
+  id                          String       @id @default(cuid())
+  customer_id                 String
+  listing_id                  String
+  address                     Json
+  amount_paid                 Int          @default(5000) // ₹50 = 5000 paise
+  status                      SampleStatus @default(paid)
+  redeemed_against_order_id   String?
+  razorpay_order_id           String?
+  razorpay_payment_id         String?
+  created_at                  DateTime     @default(now())
+
+  customer                    Customer     @relation(fields: [customer_id], references: [id])
+}
+
+model RoutePlan {
+  id           String          @id @default(cuid())
+  week_of      DateTime        @unique // always Monday
+  vehicle      String?
+  driver_name  String?
+  driver_phone String?
+  pickups      Json            @default("[]") // [{village_id, arrival_time, farmer_orders:[{farmer_id, order_ids, total_kg, qc_status}]}]
+  deliveries   Json            @default("[]") // [{type, address, order_ids, arrival_window}]
+  status       RoutePlanStatus @default(draft)
+  created_at   DateTime        @default(now())
+
+  orders       Order[]
+  qc_logs      QCLog[]
+}
+
+model QCLog {
+  id                String        @id @default(cuid())
+  route_plan_id     String
+  farmer_id         String
+  order_ids         Json          // string[]
+  weight_kg         Float
+  moisture_pct      Float?
+  broken_grain_pct  Float?
+  visual_quality    VisualQuality
+  photos            Json          @default("[]") // string[]
+  notes             String?
+  checked_by        String
+  checked_at        DateTime      @default(now())
+
+  route_plan        RoutePlan     @relation(fields: [route_plan_id], references: [id])
+  farmer            Farmer        @relation(fields: [farmer_id], references: [id])
+
+  @@index([farmer_id, checked_at(sort: Desc)])
+}
+
+model Payout {
+  id                   String       @id @default(cuid())
+  farmer_id            String
+  week_of              DateTime
+  order_ids            Json         // string[]
+  gross_amount         Int          // paise
+  commission_deducted  Int          // paise
+  net_amount           Int          // paise
+  upi_id_used          String
+  status               PayoutStatus @default(pending)
+  razorpay_payout_id   String?
+  paid_at              DateTime?
+  created_at           DateTime     @default(now())
+
+  farmer               Farmer       @relation(fields: [farmer_id], references: [id])
+
+  @@unique([farmer_id, week_of])
+}
+
+model MandiPrice {
+  id           String   @id @default(cuid())
+  commodity    String   // rice_paddy, rice_sona_masuri, retail_<variety>, etc.
+  market       String
+  state        String
+  min_price    Int      // paise/kg
+  max_price    Int
+  modal_price  Int
+  date         DateTime
+
+  @@index([commodity, state, date(sort: Desc)])
+}
+
+model AdminUser {
+  id          String    @id @default(cuid())
+  phone       String    @unique
+  name        String
+  role        AdminRole @default(ops)
+  created_at  DateTime  @default(now())
+}
+
+model WhatsAppMessage {
+  id          String      @id @default(cuid())
+  direction   WaDirection
+  phone       String
+  body        String
+  template    String?
+  farmer_id   String?
+  customer_id String?
+  order_id    String?
+  processed   Boolean     @default(false)
+  error       String?
+  created_at  DateTime    @default(now())
+
+  @@index([phone, created_at(sort: Desc)])
+  @@index([direction, processed])
+}

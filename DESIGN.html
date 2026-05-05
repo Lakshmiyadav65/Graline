@@ -1,0 +1,893 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Grainline — Rice, direct from the farmer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500;9..144,600;9..144,700;9..144,800&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4ecd8;
+    --paper-2:#ebe1c8;
+    --ink:#1d1a14;
+    --ink-soft:#3a352a;
+    --muted:#6b6354;
+    --line:#cdc1a4;
+    --line-soft:#ddd2b4;
+    --paddy:#2d4a2b;
+    --paddy-2:#3d6238;
+    --paddy-soft:#506b3e;
+    --terra:#b8552d;
+    --terra-2:#c9683f;
+    --gold:#c79c3a;
+    --cream:#fbf6e7;
+    --shadow: 0 1px 0 rgba(29,26,20,.06), 0 12px 40px -20px rgba(29,26,20,.25);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--paper);color:var(--ink);font-family:'Inter',sans-serif;-webkit-font-smoothing:antialiased}
+  body{
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(184,85,45,.06), transparent 40%),
+      radial-gradient(circle at 90% 100%, rgba(45,74,43,.07), transparent 50%),
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.11 0 0 0 0 0.10 0 0 0 0 0.07 0 0 0 0.05 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+    background-size: auto, auto, 160px 160px;
+    min-height:100vh;
+  }
+  .serif{font-family:'Fraunces',serif;font-optical-sizing:auto}
+  .mono{font-family:'JetBrains Mono',monospace}
+
+  /* ---------- App shell ---------- */
+  .app{max-width:1280px;margin:0 auto;padding:0 28px}
+  .topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:22px 0;border-bottom:1px solid var(--line);
+    position:sticky;top:0;background:linear-gradient(var(--paper) 80%, transparent);
+    z-index:50;backdrop-filter: blur(2px);
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;cursor:pointer;text-decoration:none;color:inherit}
+  .brand .logo{
+    font-family:'Fraunces',serif;font-weight:700;font-size:30px;letter-spacing:-.02em;
+    font-variation-settings:"opsz" 144;
+  }
+  .brand .logo em{color:var(--terra);font-style:italic;font-weight:500}
+  .brand .tag{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+  nav.primary{display:flex;gap:28px;align-items:center}
+  nav.primary a{
+    color:var(--ink-soft);text-decoration:none;font-size:14px;font-weight:500;
+    padding:6px 0;border-bottom:1px solid transparent;cursor:pointer;
+  }
+  nav.primary a.active{border-color:var(--paddy)}
+  nav.primary a:hover{color:var(--ink)}
+  .topbar .actions{display:flex;gap:14px;align-items:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 14px;border:1px solid var(--ink);border-radius:999px;
+    background:transparent;color:var(--ink);font-size:13px;font-weight:500;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .pill:hover{background:var(--ink);color:var(--paper)}
+  .pill.solid{background:var(--ink);color:var(--paper)}
+  .pill.solid:hover{background:var(--paddy);border-color:var(--paddy)}
+  .pill.terra{background:var(--terra);border-color:var(--terra);color:#fff}
+  .pill.terra:hover{background:var(--terra-2);border-color:var(--terra-2)}
+  .cart-badge{
+    background:var(--terra);color:#fff;font-size:11px;font-weight:600;
+    padding:2px 7px;border-radius:999px;margin-left:4px;
+  }
+
+  /* ---------- Hero ---------- */
+  .hero{padding:64px 0 56px;position:relative}
+  .eyebrow{
+    font-size:11px;letter-spacing:.22em;text-transform:uppercase;
+    color:var(--paddy);font-weight:600;display:inline-flex;align-items:center;gap:10px;
+  }
+  .eyebrow:before{content:"";width:24px;height:1px;background:var(--paddy)}
+  .hero h1{
+    font-family:'Fraunces',serif;font-weight:400;
+    font-size:clamp(48px, 7vw, 96px); line-height:.98; letter-spacing:-.025em;
+    margin:18px 0 22px; max-width:14ch;
+    font-variation-settings:"opsz" 144;
+  }
+  .hero h1 em{font-style:italic;color:var(--terra);font-weight:500}
+  .hero h1 .underline{
+    background-image:linear-gradient(transparent 64%, rgba(199,156,58,.45) 64%, rgba(199,156,58,.45) 92%, transparent 92%);
+  }
+  .hero p.lead{font-size:18px;line-height:1.55;color:var(--ink-soft);max-width:52ch;margin-bottom:32px}
+  .hero-grid{display:grid;grid-template-columns: 1.2fr .9fr;gap:60px;align-items:end}
+  .hero-stats{
+    border-top:1px solid var(--line);padding-top:24px;
+    display:grid;grid-template-columns:repeat(3,1fr);gap:24px;
+  }
+  .stat .num{font-family:'Fraunces',serif;font-size:42px;font-weight:500;letter-spacing:-.02em;line-height:1}
+  .stat .num em{color:var(--terra);font-style:normal}
+  .stat .lbl{font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:.05em}
+  .price-card{
+    background:var(--cream);border:1px solid var(--line);border-radius:8px;
+    padding:24px;box-shadow:var(--shadow);position:relative;overflow:hidden;
+  }
+  .price-card:before{
+    content:"";position:absolute;top:0;left:0;right:0;height:4px;
+    background:linear-gradient(90deg,var(--terra) 0 30%, var(--gold) 30% 60%, var(--paddy) 60% 100%);
+  }
+  .price-card h3{font-family:'Fraunces',serif;font-size:20px;font-weight:500;margin-bottom:14px}
+  .price-row{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px dashed var(--line-soft)}
+  .price-row:last-of-type{border-bottom:none}
+  .price-row .label{font-size:13px;color:var(--ink-soft)}
+  .price-row .val{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:500}
+  .price-row.hi .val{color:var(--paddy);font-weight:600}
+  .price-row.strike .val{color:var(--muted);text-decoration:line-through}
+  .savings{
+    margin-top:14px;padding:10px 14px;background:var(--paddy);color:var(--cream);
+    border-radius:4px;font-size:13px;display:flex;justify-content:space-between;align-items:center;
+  }
+  .savings strong{font-family:'Fraunces',serif;font-size:18px;font-weight:600}
+
+  /* ---------- Section primitives ---------- */
+  .section{padding:72px 0;border-top:1px solid var(--line)}
+  .section h2{
+    font-family:'Fraunces',serif;font-weight:400;font-size:clamp(32px,4vw,48px);
+    letter-spacing:-.02em;line-height:1.05;margin-bottom:8px;
+  }
+  .section h2 em{font-style:italic;color:var(--paddy)}
+  .section .sub{color:var(--muted);font-size:15px;margin-bottom:36px;max-width:60ch}
+  .section-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:36px;gap:24px;flex-wrap:wrap}
+  .section-head h2{margin-bottom:0}
+
+  /* ---------- Listing cards ---------- */
+  .listings{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+  .listing{
+    background:var(--cream);border:1px solid var(--line);border-radius:6px;
+    overflow:hidden;cursor:pointer;transition:transform .2s ease, box-shadow .2s ease;
+    display:flex;flex-direction:column;
+  }
+  .listing:hover{transform:translateY(-3px);box-shadow:var(--shadow)}
+  .listing .ph{
+    aspect-ratio: 4/3; position:relative; overflow:hidden;
+    background: linear-gradient(135deg, #d4c490 0%, #b8a572 60%, #8c7a4a 100%);
+  }
+  .listing .ph svg{position:absolute;inset:0;width:100%;height:100%}
+  .listing .badge{
+    position:absolute;top:12px;left:12px;background:var(--ink);color:var(--paper);
+    font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:5px 10px;
+    border-radius:3px;font-weight:500;
+  }
+  .listing .badge.organic{background:var(--paddy)}
+  .listing .badge.new{background:var(--terra)}
+  .listing .body{padding:18px 18px 20px;display:flex;flex-direction:column;flex:1}
+  .listing .variety{font-family:'Fraunces',serif;font-size:22px;font-weight:500;letter-spacing:-.01em;line-height:1.1}
+  .listing .by{font-size:13px;color:var(--muted);margin-top:6px}
+  .listing .by strong{color:var(--ink-soft);font-weight:500}
+  .listing .meta-row{
+    display:flex;justify-content:space-between;align-items:flex-end;margin-top:14px;
+    padding-top:14px;border-top:1px dashed var(--line-soft);
+  }
+  .listing .price{font-family:'Fraunces',serif;font-size:26px;font-weight:600;color:var(--ink);letter-spacing:-.01em}
+  .listing .price .unit{font-family:'Inter',sans-serif;font-size:12px;color:var(--muted);font-weight:400;margin-left:2px}
+  .listing .compare{font-size:11px;color:var(--terra);font-weight:500;text-align:right;margin-top:4px}
+  .listing .stock{font-size:12px;color:var(--paddy);font-weight:500}
+  .filter-bar{
+    display:flex;gap:10px;flex-wrap:wrap;margin-bottom:36px;
+    padding-bottom:20px;border-bottom:1px solid var(--line-soft);
+  }
+  .chip{
+    padding:8px 16px;border:1px solid var(--line);border-radius:999px;
+    background:transparent;color:var(--ink-soft);font-size:13px;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .chip:hover{border-color:var(--ink)}
+  .chip.active{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+
+  /* ---------- Villages ---------- */
+  .villages{display:grid;grid-template-columns:repeat(2,1fr);gap:28px}
+  .village{
+    border:1px solid var(--line);background:var(--cream);border-radius:6px;
+    padding:0;overflow:hidden;cursor:pointer;display:grid;grid-template-columns:160px 1fr;
+    transition:transform .2s ease;
+  }
+  .village:hover{transform:translateY(-2px)}
+  .village .vph{
+    background:linear-gradient(135deg,var(--paddy) 0%,var(--paddy-soft) 100%);
+    position:relative;
+  }
+  .village .vph .num{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-family:'Fraunces',serif;font-size:64px;color:rgba(251,246,231,.85);
+    font-weight:500;font-variation-settings:"opsz" 144;
+  }
+  .village .vbody{padding:20px}
+  .village h4{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin-bottom:4px}
+  .village .place{font-size:12px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase;margin-bottom:14px}
+  .village .stats{display:flex;gap:20px;font-size:13px;color:var(--ink-soft)}
+  .village .stats span strong{font-family:'Fraunces',serif;font-size:18px;display:block;color:var(--ink);font-weight:500}
+
+  /* ---------- How it works ---------- */
+  .how{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-top:1px solid var(--line)}
+  .step{padding:28px 24px;border-right:1px solid var(--line);position:relative}
+  .step:last-child{border-right:none}
+  .step .n{
+    font-family:'Fraunces',serif;font-size:14px;color:var(--terra);font-weight:600;
+    letter-spacing:.05em;margin-bottom:18px;display:block;
+  }
+  .step h4{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin-bottom:8px;letter-spacing:-.01em}
+  .step p{font-size:14px;color:var(--ink-soft);line-height:1.55}
+
+  /* ---------- Footer ---------- */
+  footer{
+    margin-top:60px;border-top:1px solid var(--line);padding:40px 0 60px;
+    display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px;
+  }
+  footer h5{font-family:'Fraunces',serif;font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px}
+  footer a{display:block;color:var(--ink-soft);text-decoration:none;font-size:14px;padding:4px 0;cursor:pointer}
+  footer a:hover{color:var(--terra)}
+  footer .about p{font-size:14px;color:var(--ink-soft);line-height:1.6;max-width:36ch;margin-top:8px}
+
+  /* ---------- Pages (single-file SPA) ---------- */
+  .page{display:none}
+  .page.show{display:block;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+  /* ---------- Listing detail ---------- */
+  .ld-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:60px;padding:48px 0}
+  .ld-photo{
+    aspect-ratio:1;background:linear-gradient(135deg,#d4c490,#8c7a4a);
+    border-radius:8px;position:relative;overflow:hidden;border:1px solid var(--line);
+  }
+  .ld-photo .badge{position:absolute;top:18px;left:18px;background:var(--paddy);color:var(--cream);font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:6px 12px;border-radius:3px}
+  .ld-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px}
+  .ld-thumbs div{aspect-ratio:1;border-radius:4px;background:linear-gradient(135deg,#c4b078,#7a6a40);border:1px solid var(--line);cursor:pointer}
+  .ld-thumbs div:first-child{outline:2px solid var(--ink);outline-offset:2px}
+  .ld-meta{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--paddy);font-weight:600;margin-bottom:10px}
+  .ld h1{font-family:'Fraunces',serif;font-size:54px;font-weight:400;line-height:1;letter-spacing:-.02em;margin-bottom:14px}
+  .ld h1 em{font-style:italic;color:var(--terra)}
+  .farmer-card{
+    display:flex;gap:14px;align-items:center;padding:14px;border:1px solid var(--line);
+    border-radius:6px;background:var(--cream);margin:20px 0;
+  }
+  .avatar{
+    width:54px;height:54px;border-radius:50%;flex-shrink:0;
+    background:linear-gradient(135deg,var(--terra) 0%,var(--gold) 100%);
+    display:grid;place-items:center;font-family:'Fraunces',serif;color:#fff;font-weight:600;font-size:22px;
+  }
+  .farmer-card .who{font-family:'Fraunces',serif;font-size:18px;font-weight:500}
+  .farmer-card .where{font-size:13px;color:var(--muted)}
+  .ld .desc{font-size:15px;line-height:1.7;color:var(--ink-soft);margin:18px 0 8px}
+  .specs{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid var(--line-soft);margin:22px 0}
+  .specs div{padding:14px 0;border-bottom:1px solid var(--line-soft);font-size:14px;display:flex;justify-content:space-between}
+  .specs div span:first-child{color:var(--muted)}
+  .specs div span:last-child{font-weight:500}
+  .pack-picker{margin-top:8px}
+  .pack-picker label{font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);font-weight:600}
+  .packs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0 22px}
+  .pack{
+    border:1px solid var(--line);border-radius:6px;padding:14px 10px;text-align:center;
+    cursor:pointer;background:transparent;font-family:inherit;transition:all .15s ease;
+  }
+  .pack:hover{border-color:var(--ink)}
+  .pack.sel{border-color:var(--ink);background:var(--ink);color:var(--paper)}
+  .pack .pkg{font-family:'Fraunces',serif;font-size:20px;font-weight:500}
+  .pack .pp{font-size:11px;margin-top:2px;opacity:.75}
+  .ld-cta{display:flex;gap:12px;margin-top:6px}
+  .btn-big{
+    flex:1;padding:16px 20px;border-radius:6px;border:1px solid var(--ink);
+    font-family:inherit;font-size:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;
+    cursor:pointer;transition:all .15s ease;
+  }
+  .btn-big.primary{background:var(--paddy);border-color:var(--paddy);color:var(--cream)}
+  .btn-big.primary:hover{background:var(--paddy-2);border-color:var(--paddy-2)}
+  .btn-big.ghost{background:transparent}
+  .btn-big.ghost:hover{background:var(--ink);color:var(--paper)}
+  .sample-banner{
+    margin-top:18px;padding:14px 16px;background:var(--paper-2);border:1px dashed var(--terra);
+    border-radius:6px;font-size:13px;color:var(--ink-soft);
+    display:flex;justify-content:space-between;align-items:center;gap:14px;
+  }
+  .sample-banner strong{color:var(--terra)}
+  .sample-banner button{
+    background:var(--terra);color:#fff;border:none;padding:8px 14px;border-radius:4px;
+    font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.05em;text-transform:uppercase;
+  }
+  .price-block{
+    background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:20px;margin-bottom:22px;
+  }
+  .price-block .now{font-family:'Fraunces',serif;font-size:48px;font-weight:600;line-height:1;letter-spacing:-.02em}
+  .price-block .now span{font-size:14px;color:var(--muted);font-weight:400;margin-left:4px;font-family:'Inter',sans-serif}
+  .price-block .vs{font-size:13px;color:var(--ink-soft);margin-top:8px}
+  .price-block .vs s{color:var(--muted)}
+  .price-block .vs .saved{color:var(--paddy);font-weight:600}
+
+  /* ---------- Cart / Checkout ---------- */
+  .checkout{display:grid;grid-template-columns:1.4fr 1fr;gap:48px;padding:48px 0}
+  .panel{background:var(--cream);border:1px solid var(--line);border-radius:8px;padding:24px}
+  .panel h3{font-family:'Fraunces',serif;font-size:22px;font-weight:500;margin-bottom:18px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:var(--muted);margin-bottom:6px;font-weight:600}
+  .field input, .field textarea{
+    width:100%;padding:12px 14px;border:1px solid var(--line);border-radius:5px;
+    background:var(--paper);font-family:inherit;font-size:15px;color:var(--ink);
+  }
+  .field input:focus, .field textarea:focus{outline:none;border-color:var(--ink)}
+  .ship-opts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+  .ship-opt{
+    border:1px solid var(--line);border-radius:6px;padding:14px;text-align:left;cursor:pointer;
+    background:var(--paper);transition:all .15s ease;
+  }
+  .ship-opt:hover{border-color:var(--ink)}
+  .ship-opt.sel{border-color:var(--paddy);background:#f0ead4;box-shadow:inset 0 0 0 1px var(--paddy)}
+  .ship-opt .ttl{font-family:'Fraunces',serif;font-size:16px;font-weight:500}
+  .ship-opt .det{font-size:11px;color:var(--muted);margin-top:4px}
+  .ship-opt .fee{font-size:13px;font-weight:600;color:var(--ink);margin-top:8px;font-family:'JetBrains Mono',monospace}
+  .cart-line{display:grid;grid-template-columns:64px 1fr auto;gap:14px;padding:14px 0;border-bottom:1px dashed var(--line-soft);align-items:center}
+  .cart-line:last-child{border-bottom:none}
+  .cart-line .ic{
+    width:64px;height:64px;border-radius:5px;
+    background:linear-gradient(135deg,#d4c490,#8c7a4a);
+  }
+  .cart-line .nm{font-family:'Fraunces',serif;font-size:17px;font-weight:500}
+  .cart-line .ds{font-size:12px;color:var(--muted);margin-top:2px}
+  .cart-line .pr{font-family:'JetBrains Mono',monospace;font-weight:600}
+  .totals{margin-top:18px;padding-top:18px;border-top:1px solid var(--line)}
+  .tot-row{display:flex;justify-content:space-between;padding:6px 0;font-size:14px}
+  .tot-row.grand{font-family:'Fraunces',serif;font-size:24px;font-weight:600;padding-top:12px;border-top:1px solid var(--line);margin-top:8px}
+  .pay-btn{
+    width:100%;margin-top:20px;padding:18px;background:var(--paddy);color:var(--cream);
+    border:none;border-radius:6px;font-family:inherit;font-size:14px;font-weight:600;
+    letter-spacing:.05em;text-transform:uppercase;cursor:pointer;
+  }
+  .pay-btn:hover{background:var(--paddy-2)}
+
+  /* ---------- Farmer pages ---------- */
+  .farmer-shell{display:grid;grid-template-columns:240px 1fr;gap:0;min-height:calc(100vh - 90px)}
+  .farmer-shell aside{
+    border-right:1px solid var(--line);padding:32px 24px 32px 0;
+  }
+  .farmer-shell aside .who{margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid var(--line-soft)}
+  .farmer-shell aside .who .nm{font-family:'Fraunces',serif;font-size:20px;font-weight:500}
+  .farmer-shell aside .who .vl{font-size:12px;color:var(--muted);margin-top:2px}
+  .farmer-shell aside nav{display:flex;flex-direction:column;gap:2px}
+  .farmer-shell aside nav a{
+    display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 14px;border-radius:5px;
+    color:var(--ink-soft);text-decoration:none;font-size:14px;cursor:pointer;
+  }
+  .farmer-shell aside nav a:hover{background:var(--paper-2)}
+  .farmer-shell aside nav a.active{background:var(--ink);color:var(--paper)}
+  .farmer-shell aside nav a .n{font-size:11px;background:var(--terra);color:#fff;padding:1px 7px;border-radius:999px}
+  .farmer-shell main{padding:32px 0 32px 36px}
+  .farmer-shell main h2{font-family:'Fraunces',serif;font-weight:400;font-size:36px;letter-spacing:-.02em;margin-bottom:6px}
+  .farmer-shell main .sub{color:var(--muted);font-size:14px;margin-bottom:28px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px}
+  .kpi{border:1px solid var(--line);background:var(--cream);border-radius:6px;padding:18px}
+  .kpi .v{font-family:'Fraunces',serif;font-size:32px;font-weight:600;letter-spacing:-.01em;line-height:1}
+  .kpi .v em{color:var(--terra);font-style:normal}
+  .kpi .l{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-top:8px}
+  .kpi .delta{font-size:11px;color:var(--paddy);margin-top:6px;font-weight:500}
+  .order-row{
+    display:grid;grid-template-columns: 90px 1.2fr 1fr 1fr 110px;gap:14px;align-items:center;
+    padding:16px;border:1px solid var(--line);background:var(--cream);border-radius:6px;margin-bottom:10px;
+  }
+  .order-row .id{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)}
+  .order-row .what{font-family:'Fraunces',serif;font-size:17px;font-weight:500}
+  .order-row .who{font-size:13px;color:var(--ink-soft)}
+  .order-row .when{font-size:13px;color:var(--ink-soft)}
+  .order-row .when em{color:var(--terra);font-style:normal;font-weight:600}
+  .order-row .st{font-size:11px;letter-spacing:.08em;text-transform:uppercase;font-weight:600;text-align:center;padding:6px 10px;border-radius:3px}
+  .st.pending{background:#f5e7c2;color:#8a6a1a}
+  .st.confirmed{background:#dde6c8;color:#3d5a1a}
+  .st.ready{background:var(--paddy);color:var(--cream)}
+
+  /* ---------- Enroll ---------- */
+  .enroll-wrap{display:grid;grid-template-columns:1fr 1.1fr;gap:0;min-height:calc(100vh - 90px)}
+  .enroll-side{
+    background:var(--paddy);color:var(--cream);padding:60px 48px;
+    background-image:
+      radial-gradient(circle at 100% 0%, rgba(199,156,58,.18), transparent 50%),
+      radial-gradient(circle at 0% 100%, rgba(184,85,45,.15), transparent 50%);
+    display:flex;flex-direction:column;justify-content:space-between;
+  }
+  .enroll-side h2{font-family:'Fraunces',serif;font-size:44px;font-weight:400;line-height:1.05;letter-spacing:-.02em;margin-bottom:18px}
+  .enroll-side h2 em{font-style:italic;color:var(--gold)}
+  .enroll-side p{font-size:16px;line-height:1.6;opacity:.85;max-width:42ch}
+  .enroll-side .quote{margin-top:auto;padding-top:32px;border-top:1px solid rgba(251,246,231,.2)}
+  .enroll-side .quote q{font-family:'Fraunces',serif;font-style:italic;font-size:20px;line-height:1.4;display:block}
+  .enroll-side .quote cite{font-size:13px;opacity:.7;display:block;margin-top:10px;font-style:normal}
+  .enroll-form{padding:60px 48px;max-width:520px}
+  .step-bar{display:flex;gap:6px;margin-bottom:32px}
+  .step-bar div{flex:1;height:4px;border-radius:999px;background:var(--line)}
+  .step-bar div.done{background:var(--paddy)}
+  .step-bar div.cur{background:var(--terra)}
+  .enroll-form h3{font-family:'Fraunces',serif;font-size:30px;font-weight:500;letter-spacing:-.015em;margin-bottom:6px}
+  .enroll-form .sub{color:var(--muted);font-size:14px;margin-bottom:24px}
+
+  /* ---------- Footer demo nav ---------- */
+  .demo-nav{
+    position:fixed;bottom:18px;left:50%;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper);padding:6px;border-radius:999px;
+    display:flex;gap:2px;z-index:100;box-shadow:0 16px 40px -10px rgba(0,0,0,.4);
+  }
+  .demo-nav button{
+    background:transparent;color:var(--paper);border:none;padding:8px 16px;
+    border-radius:999px;font-size:12px;font-family:inherit;cursor:pointer;
+    letter-spacing:.04em;
+  }
+  .demo-nav button.on{background:var(--terra)}
+  .demo-nav button:hover:not(.on){background:rgba(255,255,255,.08)}
+
+  @media (max-width: 920px){
+    .hero-grid, .ld-grid, .checkout, .villages, .listings, .farmer-shell, .enroll-wrap{grid-template-columns:1fr}
+    .hero-stats, .how, .kpis, .ship-opts{grid-template-columns:repeat(2,1fr)}
+    .farmer-shell aside{border-right:none;border-bottom:1px solid var(--line)}
+    .farmer-shell main{padding:32px 0}
+    nav.primary{display:none}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ===== TOPBAR ===== -->
+  <header class="topbar">
+    <a class="brand" onclick="go('home')">
+      <span class="logo">Grain<em>line</em></span>
+      <span class="tag">Field to Kitchen</span>
+    </a>
+    <nav class="primary">
+      <a id="nav-home" onclick="go('home')">Home</a>
+      <a id="nav-browse" onclick="go('browse')">Browse Rice</a>
+      <a id="nav-villages" onclick="go('villages')">Villages</a>
+      <a id="nav-how" onclick="go('how')">How it works</a>
+    </nav>
+    <div class="actions">
+      <button class="pill" onclick="go('enroll')">Sell on Grainline</button>
+      <button class="pill solid" onclick="go('cart')">Cart <span class="cart-badge">2</span></button>
+    </div>
+  </header>
+
+  <!-- ===== HOME ===== -->
+  <section id="page-home" class="page show">
+    <div class="hero">
+      <div class="hero-grid">
+        <div>
+          <span class="eyebrow">Direct from 8 villages</span>
+          <h1>Rice with a <em>name</em>, a <span class="underline">place</span>, and a fair price.</h1>
+          <p class="lead">No middlemen. No mystery brand. Just paddy grown by farmers you can call by name, milled this season, delivered to your door.</p>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            <button class="pill solid" onclick="go('browse')">Browse rice →</button>
+            <button class="pill" onclick="go('enroll')">I'm a farmer</button>
+          </div>
+          <div class="hero-stats" style="margin-top:48px">
+            <div class="stat"><div class="num"><em>147</em></div><div class="lbl">FARMERS ENROLLED</div></div>
+            <div class="stat"><div class="num">8</div><div class="lbl">VILLAGES IN NETWORK</div></div>
+            <div class="stat"><div class="num"><em>₹18</em>/kg</div><div class="lbl">AVG. EXTRA TO FARMER</div></div>
+          </div>
+        </div>
+        <div class="price-card">
+          <h3>Why direct costs less</h3>
+          <div class="price-row strike"><span class="label">Branded retail (Sona Masuri 10kg)</span><span class="val">₹85/kg</span></div>
+          <div class="price-row"><span class="label">Local mandi rate (paddy)</span><span class="val">₹22/kg</span></div>
+          <div class="price-row hi"><span class="label">Grainline farmer price</span><span class="val">₹52/kg</span></div>
+          <div class="savings">
+            <span>You save vs. branded retail</span>
+            <strong>₹330 / 10kg</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Featured listings -->
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>This season's <em>harvest</em></h2>
+          <div class="sub">Fresh from the 2025 Rabi season. Limited stock from each farmer.</div>
+        </div>
+        <button class="pill" onclick="go('browse')">View all rice →</button>
+      </div>
+      <div class="listings" id="featured-listings"></div>
+    </section>
+
+    <!-- Villages -->
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <h2>Meet the <em>villages</em></h2>
+          <div class="sub">Each village has its soil, its water, its varieties. Eight villages, one network.</div>
+        </div>
+        <button class="pill" onclick="go('villages')">All villages →</button>
+      </div>
+      <div class="villages" id="villages-preview"></div>
+    </section>
+
+    <!-- How -->
+    <section class="section">
+      <h2>How <em>Grainline</em> works</h2>
+      <div class="sub">A weekly rhythm that respects both the field and the kitchen.</div>
+      <div class="how">
+        <div class="step"><span class="n">01 / MONDAY</span><h4>You order</h4><p>Browse rice by variety, village, or farmer. Order any pack from 1kg to 50kg.</p></div>
+        <div class="step"><span class="n">02 / WEDNESDAY</span><h4>Farmer confirms</h4><p>Your farmer gets a WhatsApp confirmation. They mill the rice fresh that week.</p></div>
+        <div class="step"><span class="n">03 / FRIDAY</span><h4>We collect</h4><p>Our team picks up from each village along a single weekly route. Quality checked at pickup.</p></div>
+        <div class="step"><span class="n">04 / SATURDAY</span><h4>You receive</h4><p>Delivery to your door or a city pickup point. Farmer paid by Sunday.</p></div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="about">
+        <h5>Grainline</h5>
+        <p>A direct-trade rice network linking farming villages with home kitchens. Built so farmers earn more and families pay less.</p>
+      </div>
+      <div><h5>Buy</h5><a onclick="go('browse')">All rice</a><a onclick="go('villages')">By village</a><a>By variety</a><a>Subscriptions</a></div>
+      <div><h5>Sell</h5><a onclick="go('enroll')">Enroll your farm</a><a>Register a village</a><a onclick="go('farmer')">Farmer dashboard</a><a>Pricing</a></div>
+      <div><h5>About</h5><a onclick="go('how')">How it works</a><a>Quality promise</a><a>Contact</a><a>WhatsApp us</a></div>
+    </footer>
+  </section>
+
+  <!-- ===== BROWSE ===== -->
+  <section id="page-browse" class="page">
+    <div class="section" style="border-top:none;padding-top:48px">
+      <span class="eyebrow">All rice • 24 listings</span>
+      <h2 style="margin-top:14px">Browse <em>by variety</em>, by village, by price.</h2>
+      <div class="filter-bar" style="margin-top:30px">
+        <button class="chip active">All varieties</button>
+        <button class="chip">Sona Masuri</button>
+        <button class="chip">BPT 5204</button>
+        <button class="chip">Basmati</button>
+        <button class="chip">Jeera Rice</button>
+        <button class="chip">Red Rice</button>
+        <button class="chip">Hand-pounded</button>
+        <button class="chip">Organic only</button>
+      </div>
+      <div class="listings" id="all-listings"></div>
+    </div>
+  </section>
+
+  <!-- ===== LISTING DETAIL ===== -->
+  <section id="page-listing" class="page">
+    <div class="ld-grid ld">
+      <div>
+        <div class="ld-photo">
+          <span class="badge">Organic · 2025 harvest</span>
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none"><defs><radialGradient id="g1" cx="30%" cy="30%"><stop offset="0%" stop-color="#e8d8a4" stop-opacity=".5"/><stop offset="100%" stop-color="transparent"/></radialGradient></defs><rect width="100" height="100" fill="url(%23g1)"/></svg>
+        </div>
+        <div class="ld-thumbs"><div></div><div></div><div></div><div></div></div>
+      </div>
+      <div>
+        <div class="ld-meta">SONA MASURI · KONAIPALLI VILLAGE</div>
+        <h1>Sona <em>Masuri</em>,<br/>aged six months.</h1>
+        <div class="farmer-card">
+          <div class="avatar">RV</div>
+          <div>
+            <div class="who">Ramesh Varma</div>
+            <div class="where">3.2 acres · Konaipalli, Karimnagar district · Farming since 2008</div>
+          </div>
+        </div>
+        <div class="price-block">
+          <div class="now">₹52<span>/kg</span></div>
+          <div class="vs">vs. branded retail <s>₹85/kg</s> &nbsp;·&nbsp; <span class="saved">you save ₹33/kg</span></div>
+        </div>
+        <p class="desc">Slow-aged six months for a softer cook and a fuller fragrance. Single-pass milled, lightly polished, 0% broken grains. Grown on Ramesh's family land using mostly natural inputs and bore-well irrigation. Best for everyday meals — biryani, pulao, plain rice.</p>
+        <div class="specs">
+          <div><span>Variety</span><span>Sona Masuri</span></div>
+          <div><span>Type</span><span>Raw, single-polish</span></div>
+          <div><span>Harvest</span><span>Apr 2025 (Rabi)</span></div>
+          <div><span>Milled</span><span>This week</span></div>
+          <div><span>Available</span><span>320 kg in stock</span></div>
+          <div><span>Certification</span><span>Natural · uncertified</span></div>
+        </div>
+        <div class="pack-picker">
+          <label>Choose pack size</label>
+          <div class="packs">
+            <button class="pack" onclick="selectPack(this)"><div class="pkg">1 kg</div><div class="pp">₹55/kg</div></button>
+            <button class="pack" onclick="selectPack(this)"><div class="pkg">5 kg</div><div class="pp">₹53/kg</div></button>
+            <button class="pack sel" onclick="selectPack(this)"><div class="pkg">10 kg</div><div class="pp">₹52/kg</div></button>
+            <button class="pack" onclick="selectPack(this)"><div class="pkg">25 kg</div><div class="pp">₹50/kg</div></button>
+          </div>
+        </div>
+        <div class="ld-cta">
+          <button class="btn-big primary" onclick="go('cart')">Add to cart · ₹520</button>
+          <button class="btn-big ghost">Subscribe monthly</button>
+        </div>
+        <div class="sample-banner">
+          <div>Not sure? Get a <strong>250g sample for ₹50</strong> — refunded against your first 10kg order.</div>
+          <button>Send sample</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== VILLAGES ===== -->
+  <section id="page-villages" class="page">
+    <div class="section" style="border-top:none;padding-top:48px">
+      <span class="eyebrow">8 villages · 147 farmers</span>
+      <h2 style="margin-top:14px">The <em>villages</em> in our network.</h2>
+      <div class="sub">Each village page shows the farmers, the varieties they grow, and the story of the land.</div>
+      <div class="villages" id="all-villages" style="margin-top:30px"></div>
+    </div>
+  </section>
+
+  <!-- ===== HOW ===== -->
+  <section id="page-how" class="page">
+    <div class="section" style="border-top:none;padding-top:48px">
+      <span class="eyebrow">Our model</span>
+      <h2 style="margin-top:14px">A <em>weekly</em> rhythm.</h2>
+      <div class="sub">We aggregate orders, run a single weekly route through the villages, do quality checks at pickup, and pay farmers within 7 days. Simple, predictable, fair.</div>
+      <div class="how" style="margin-top:20px">
+        <div class="step"><span class="n">01 / MONDAY</span><h4>You order</h4><p>Browse rice by variety, village, or farmer. Order any pack from 1kg to 50kg. Cut-off is Tuesday 9pm.</p></div>
+        <div class="step"><span class="n">02 / WEDNESDAY</span><h4>Farmer confirms</h4><p>Your farmer gets a WhatsApp message with the order. They mill the rice fresh that week and prepare your sack.</p></div>
+        <div class="step"><span class="n">03 / FRIDAY</span><h4>We collect</h4><p>Our team runs a single weekly tempo route through all eight villages. Each sack is weighed and quality-checked at pickup.</p></div>
+        <div class="step"><span class="n">04 / SATURDAY</span><h4>You receive</h4><p>Delivery to your door or a city pickup point. Farmer is paid via UPI by Sunday evening — no waiting weeks.</p></div>
+      </div>
+
+      <h2 style="margin-top:80px">The <em>fair-price</em> math.</h2>
+      <div class="sub">We take a 10% commission. Farmers still earn 2× what mandi pays. You pay 30-40% less than branded retail.</div>
+      <div class="price-card" style="max-width:560px;margin-top:20px">
+        <h3>For one kilogram of Sona Masuri</h3>
+        <div class="price-row strike"><span class="label">What you'd pay branded retail</span><span class="val">₹85</span></div>
+        <div class="price-row"><span class="label">Grainline price to you</span><span class="val">₹52</span></div>
+        <div class="price-row"><span class="label">Grainline commission (10%)</span><span class="val">₹5</span></div>
+        <div class="price-row hi"><span class="label">Farmer receives</span><span class="val">₹47</span></div>
+        <div class="price-row strike"><span class="label">What mandi would have paid the farmer</span><span class="val">₹22</span></div>
+        <div class="savings"><span>Farmer earns more</span><strong>+₹25/kg</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== CART / CHECKOUT ===== -->
+  <section id="page-cart" class="page">
+    <div class="section" style="border-top:none;padding-top:48px">
+      <span class="eyebrow">Your cart · 2 items</span>
+      <h2 style="margin-top:14px">Almost <em>home</em>.</h2>
+      <div class="checkout">
+        <div>
+          <div class="panel" style="margin-bottom:18px">
+            <h3>Delivery</h3>
+            <div class="ship-opts">
+              <button class="ship-opt" onclick="selectShip(this)"><div class="ttl">Farmhouse pickup</div><div class="det">From farmer's home, Konaipalli</div><div class="fee">Free</div></button>
+              <button class="ship-opt" onclick="selectShip(this)"><div class="ttl">City pickup point</div><div class="det">Hyderabad · Sat 5pm</div><div class="fee">₹50</div></button>
+              <button class="ship-opt sel" onclick="selectShip(this)"><div class="ttl">Home delivery</div><div class="det">Hyderabad · Sat 12-6pm</div><div class="fee">₹120</div></button>
+            </div>
+            <div class="field"><label>Delivery address</label><textarea rows="3">Flat 304, Aspen Heights, Gachibowli, Hyderabad — 500032</textarea></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+              <div class="field"><label>Phone</label><input value="+91 98480 12345"/></div>
+              <div class="field"><label>Delivery date</label><input value="Sat, 9 May 2026"/></div>
+            </div>
+          </div>
+          <div class="panel">
+            <h3>Payment</h3>
+            <div class="ship-opts">
+              <button class="ship-opt sel" onclick="selectShip(this)"><div class="ttl">UPI</div><div class="det">PhonePe · GPay · Paytm</div><div class="fee">Instant</div></button>
+              <button class="ship-opt" onclick="selectShip(this)"><div class="ttl">Card</div><div class="det">Visa · Mastercard · RuPay</div><div class="fee">Secure</div></button>
+              <button class="ship-opt" onclick="selectShip(this)"><div class="ttl">Cash on delivery</div><div class="det">Pay our delivery partner</div><div class="fee">+₹30</div></button>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div class="panel">
+            <h3>Order summary</h3>
+            <div class="cart-line">
+              <div class="ic"></div>
+              <div><div class="nm">Sona Masuri · 10kg</div><div class="ds">Ramesh Varma · Konaipalli</div></div>
+              <div class="pr">₹520</div>
+            </div>
+            <div class="cart-line">
+              <div class="ic" style="background:linear-gradient(135deg,#a8462a,#5a2412)"></div>
+              <div><div class="nm">Red Rice · 5kg</div><div class="ds">Lakshmi Devi · Pochampalli</div></div>
+              <div class="pr">₹450</div>
+            </div>
+            <div class="totals">
+              <div class="tot-row"><span>Subtotal</span><span>₹970</span></div>
+              <div class="tot-row"><span>Delivery</span><span>₹120</span></div>
+              <div class="tot-row" style="color:var(--paddy);font-weight:600"><span>Direct-trade saving</span><span>−₹620</span></div>
+              <div class="tot-row grand"><span>Total</span><span>₹1,090</span></div>
+            </div>
+            <button class="pay-btn" onclick="alert('Demo: payment flow opens here →')">Pay ₹1,090 via UPI →</button>
+            <p style="font-size:12px;color:var(--muted);margin-top:14px;text-align:center">Farmer receives ₹873 within 7 days · Grainline fee ₹97</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== ENROLL (FARMER) ===== -->
+  <section id="page-enroll" class="page">
+    <div class="enroll-wrap" style="margin:0 -28px">
+      <div class="enroll-side">
+        <div>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.15em;opacity:.7">FOR FARMERS</span>
+          <h2 style="margin-top:18px">Sell your rice <em>directly</em>.<br/>Earn 2× more.</h2>
+          <p>Join 147 farmers across 8 villages. We handle listings, orders, logistics, and payments — you focus on growing.</p>
+          <ul style="list-style:none;margin-top:32px;display:flex;flex-direction:column;gap:14px">
+            <li style="display:flex;gap:12px;align-items:flex-start"><span style="color:var(--gold);font-family:'Fraunces',serif;font-size:20px;font-weight:600">✓</span><span>Set your own price · we never negotiate</span></li>
+            <li style="display:flex;gap:12px;align-items:flex-start"><span style="color:var(--gold);font-family:'Fraunces',serif;font-size:20px;font-weight:600">✓</span><span>Paid via UPI within 7 days of pickup</span></li>
+            <li style="display:flex;gap:12px;align-items:flex-start"><span style="color:var(--gold);font-family:'Fraunces',serif;font-size:20px;font-weight:600">✓</span><span>Manage everything via WhatsApp · no app needed</span></li>
+            <li style="display:flex;gap:12px;align-items:flex-start"><span style="color:var(--gold);font-family:'Fraunces',serif;font-size:20px;font-weight:600">✓</span><span>10% commission only · no listing fee, no subscription</span></li>
+          </ul>
+        </div>
+        <div class="quote">
+          <q>Mandi gave me ₹22 a kilo. Last month I sold at ₹50. My daughter is back in school.</q>
+          <cite>— Ramesh Varma, Konaipalli village</cite>
+        </div>
+      </div>
+      <div class="enroll-form">
+        <div class="step-bar">
+          <div class="done"></div><div class="cur"></div><div></div><div></div><div></div>
+        </div>
+        <span class="eyebrow">Step 2 of 5 · About you</span>
+        <h3 style="margin-top:14px">Tell us about your farm.</h3>
+        <div class="sub">This shows on your public farmer page so customers know who's growing their rice.</div>
+        <div class="field"><label>Full name</label><input placeholder="Ramesh Varma"/></div>
+        <div class="field"><label>Mobile (verified)</label><input value="+91 98480 12345" disabled style="color:var(--muted)"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="field"><label>Village</label><input placeholder="Search or request new" value="Konaipalli"/></div>
+          <div class="field"><label>Land area (acres)</label><input placeholder="3.2"/></div>
+        </div>
+        <div class="field"><label>Rice varieties you grow</label><input placeholder="Sona Masuri, BPT 5204, …"/></div>
+        <div class="field"><label>A short story about your farm (optional)</label><textarea rows="3" placeholder="Family land for three generations. Mostly natural farming…"></textarea></div>
+        <div style="display:flex;gap:12px;margin-top:22px">
+          <button class="btn-big ghost" onclick="go('home')">← Back</button>
+          <button class="btn-big primary" style="flex:2" onclick="go('farmer')">Continue → bank details</button>
+        </div>
+        <p style="font-size:12px;color:var(--muted);margin-top:18px;text-align:center">Need help enrolling? <strong style="color:var(--terra);cursor:pointer">WhatsApp our team</strong> · we'll come to your village</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== FARMER DASHBOARD ===== -->
+  <section id="page-farmer" class="page">
+    <div class="farmer-shell">
+      <aside>
+        <div class="who">
+          <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
+            <div class="avatar" style="width:42px;height:42px;font-size:16px">RV</div>
+            <div>
+              <div class="nm">Ramesh Varma</div>
+              <div class="vl">Konaipalli · since 2024</div>
+            </div>
+          </div>
+        </div>
+        <nav>
+          <a class="active">Dashboard</a>
+          <a>Orders <span class="n">3</span></a>
+          <a>My listings</a>
+          <a>Earnings & payouts</a>
+          <a>Profile</a>
+          <a>Help & WhatsApp</a>
+        </nav>
+      </aside>
+      <main>
+        <h2>Good morning, <em style="color:var(--terra);font-style:italic">Ramesh</em>.</h2>
+        <div class="sub">3 new orders this week · pickup scheduled Friday morning</div>
+        <div class="kpis">
+          <div class="kpi"><div class="v">₹<em>14,820</em></div><div class="l">EARNED THIS WEEK</div><div class="delta">+ ₹3,200 vs last week</div></div>
+          <div class="kpi"><div class="v">42<span style="font-size:14px;color:var(--muted);font-family:'Inter',sans-serif"> kg</span></div><div class="l">SOLD THIS WEEK</div><div class="delta">3 active orders</div></div>
+          <div class="kpi"><div class="v">₹<em>52</em></div><div class="l">YOUR AVG PRICE/KG</div><div class="delta">vs ₹22 mandi rate</div></div>
+          <div class="kpi"><div class="v">320<span style="font-size:14px;color:var(--muted);font-family:'Inter',sans-serif"> kg</span></div><div class="l">STOCK REMAINING</div><div class="delta">Sona Masuri</div></div>
+        </div>
+
+        <h3 style="font-family:'Fraunces',serif;font-weight:500;font-size:24px;margin:8px 0 16px">Incoming orders</h3>
+        <div class="order-row">
+          <div class="id">#GL-1284</div>
+          <div><div class="what">Sona Masuri · 10kg</div><div class="who">Priya M. · Hyderabad</div></div>
+          <div class="when">Pickup <em>Fri 8 May</em></div>
+          <div class="when">Earnings <strong>₹468</strong></div>
+          <div class="st pending">Confirm</div>
+        </div>
+        <div class="order-row">
+          <div class="id">#GL-1281</div>
+          <div><div class="what">Sona Masuri · 25kg</div><div class="who">Arjun K. · Hyderabad</div></div>
+          <div class="when">Pickup <em>Fri 8 May</em></div>
+          <div class="when">Earnings <strong>₹1,125</strong></div>
+          <div class="st confirmed">Confirmed</div>
+        </div>
+        <div class="order-row">
+          <div class="id">#GL-1278</div>
+          <div><div class="what">Sona Masuri · 5kg</div><div class="who">Sneha R. · Secunderabad</div></div>
+          <div class="when">Pickup <em>Fri 8 May</em></div>
+          <div class="when">Earnings <strong>₹239</strong></div>
+          <div class="st ready">Ready</div>
+        </div>
+
+        <div style="margin-top:32px;padding:18px;background:var(--cream);border:1px dashed var(--terra);border-radius:6px;display:flex;gap:14px;align-items:center">
+          <div style="font-family:'Fraunces',serif;font-size:32px;color:var(--terra)">⌖</div>
+          <div style="flex:1">
+            <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:500">Pickup reminder</div>
+            <div style="font-size:13px;color:var(--ink-soft);margin-top:2px">Our tempo arrives Friday between 7-9am. Have all 3 sacks (40kg total) ready, weighed and labelled.</div>
+          </div>
+          <button class="pill solid">View pickup checklist</button>
+        </div>
+      </main>
+    </div>
+  </section>
+
+</div>
+
+<!-- demo nav -->
+<div class="demo-nav">
+  <button onclick="go('home')" id="dn-home" class="on">Home</button>
+  <button onclick="go('browse')" id="dn-browse">Browse</button>
+  <button onclick="go('listing')" id="dn-listing">Listing</button>
+  <button onclick="go('villages')" id="dn-villages">Villages</button>
+  <button onclick="go('cart')" id="dn-cart">Checkout</button>
+  <button onclick="go('how')" id="dn-how">How</button>
+  <button onclick="go('enroll')" id="dn-enroll">Enroll</button>
+  <button onclick="go('farmer')" id="dn-farmer">Farmer</button>
+</div>
+
+<script>
+// ---- Sample data ----
+const LISTINGS = [
+  {variety:"Sona Masuri", farmer:"Ramesh Varma", village:"Konaipalli", price:52, retail:85, kg:320, badge:"Organic", organic:true, color:"linear-gradient(135deg,#e6d4a0 0%,#b89c5c 60%,#7a5e2c 100%)"},
+  {variety:"BPT 5204", farmer:"Saritha Reddy", village:"Pochampalli", price:48, retail:75, kg:180, badge:"New harvest", new:true, color:"linear-gradient(135deg,#dcc890 0%,#a88d50 100%)"},
+  {variety:"Basmati", farmer:"Nageshwar Rao", village:"Bhupalpalli", price:118, retail:175, kg:90, badge:"Aged 2 yrs", color:"linear-gradient(135deg,#f0e2b6 0%,#c4a86c 100%)"},
+  {variety:"Red Rice", farmer:"Lakshmi Devi", village:"Pochampalli", price:90, retail:140, kg:60, badge:"Heirloom", color:"linear-gradient(135deg,#a8462a 0%,#5a2412 100%)"},
+  {variety:"Jeera Samba", farmer:"Vikram Singh", village:"Choutuppal", price:78, retail:120, kg:140, badge:"Aromatic", color:"linear-gradient(135deg,#e8d49c 0%,#a88c4c 100%)"},
+  {variety:"Hand-pounded Sona", farmer:"Yadagiri", village:"Manthani", price:62, retail:95, kg:75, badge:"Hand milled", color:"linear-gradient(135deg,#dcc080 0%,#8c6e30 100%)"},
+];
+const VILLAGES = [
+  {n:8, name:"Konaipalli", place:"Karimnagar district", farmers:18, varieties:4, rice:"Sona Masuri · BPT"},
+  {n:12, name:"Pochampalli", place:"Yadadri district", farmers:24, varieties:6, rice:"Red rice · BPT · Basmati"},
+  {n:6, name:"Bhupalpalli", place:"Bhupalpalli district", farmers:11, varieties:3, rice:"Basmati · Sona Masuri"},
+  {n:9, name:"Choutuppal", place:"Yadadri district", farmers:21, varieties:5, rice:"Jeera Samba · BPT"},
+];
+
+// ---- Renderers ----
+function ricePh(color, badge, badgeKind){
+  const b = badge ? `<span class="badge ${badgeKind||''}">${badge}</span>` : '';
+  return `<div class="ph" style="background:${color}">${b}
+    <svg viewBox='0 0 100 100' preserveAspectRatio='none'>
+      <defs><radialGradient id='g${Math.random().toString(36).slice(2,7)}' cx='30%' cy='30%'><stop offset='0%' stop-color='rgba(255,255,255,.4)'/><stop offset='100%' stop-color='transparent'/></radialGradient></defs>
+    </svg>
+  </div>`;
+}
+function listingCard(l){
+  const kind = l.organic ? 'organic' : (l.new ? 'new' : '');
+  return `<article class="listing" onclick="go('listing')">
+    ${ricePh(l.color, l.badge, kind)}
+    <div class="body">
+      <div class="variety">${l.variety}</div>
+      <div class="by">by <strong>${l.farmer}</strong> · ${l.village}</div>
+      <div class="meta-row">
+        <div>
+          <div class="price">₹${l.price}<span class="unit">/kg</span></div>
+          <div class="compare">vs ₹${l.retail} retail</div>
+        </div>
+        <div class="stock">${l.kg} kg available</div>
+      </div>
+    </div>
+  </article>`;
+}
+function villageCard(v){
+  return `<article class="village" onclick="go('villages')">
+    <div class="vph"><div class="num">${v.n}</div></div>
+    <div class="vbody">
+      <h4>${v.name}</h4>
+      <div class="place">${v.place}</div>
+      <div class="stats">
+        <span><strong>${v.farmers}</strong>FARMERS</span>
+        <span><strong>${v.varieties}</strong>VARIETIES</span>
+      </div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-top:14px;padding-top:14px;border-top:1px dashed var(--line-soft)">${v.rice}</div>
+    </div>
+  </article>`;
+}
+
+document.getElementById('featured-listings').innerHTML = LISTINGS.slice(0,3).map(listingCard).join('');
+document.getElementById('all-listings').innerHTML = LISTINGS.map(listingCard).join('');
+document.getElementById('villages-preview').innerHTML = VILLAGES.slice(0,4).map(villageCard).join('');
+document.getElementById('all-villages').innerHTML = VILLAGES.map(villageCard).join('');
+
+// ---- Navigation ----
+function go(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('show'));
+  document.getElementById('page-'+name).classList.add('show');
+  document.querySelectorAll('.demo-nav button').forEach(b=>b.classList.remove('on'));
+  const dn = document.getElementById('dn-'+name); if(dn) dn.classList.add('on');
+  document.querySelectorAll('nav.primary a').forEach(a=>a.classList.remove('active'));
+  const navMap = {home:'nav-home',browse:'nav-browse',villages:'nav-villages',how:'nav-how'};
+  if(navMap[name]) document.getElementById(navMap[name]).classList.add('active');
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function selectPack(el){ el.parentElement.querySelectorAll('.pack').forEach(p=>p.classList.remove('sel')); el.classList.add('sel'); }
+function selectShip(el){ el.parentElement.querySelectorAll('.ship-opt').forEach(p=>p.classList.remove('sel')); el.classList.add('sel'); }
+</script>
+</body>
+</html>
