@@ -1,34 +1,37 @@
 import type { ReactNode } from "react";
 import { TopBar } from "./TopBar";
 import { Footer } from "./Footer";
+import { AnnouncementBar } from "./AnnouncementBar";
 
 interface PageShellProps {
   children: ReactNode;
   /** Hide the footer (useful on dashboards / enroll). */
   noFooter?: boolean;
-  /** Hide the topbar (useful on full-bleed enroll-style pages). */
+  /** Hide the topbar + announcement bar (useful on full-bleed enroll-style pages). */
   noTopBar?: boolean;
 }
 
 /**
- * App-wide layout shell. max-width 1280, 28px horizontal padding.
- * Mirrors the .app wrapper in DESIGN.html.
+ * App-wide layout shell. The AnnouncementBar is full-bleed; everything below
+ * sits inside the max-w-app container that mirrors DESIGN.html .app.
  *
- * Adds a "Skip to main content" link as the first focusable element so
- * keyboard users can bypass the topbar nav. The link is visually hidden
- * until it receives focus (.skip-link rules live in globals.css).
+ * A "Skip to main content" link is the first focusable element so keyboard
+ * users can bypass both the announcement bar and topbar nav.
  */
 export function PageShell({ children, noFooter, noTopBar }: PageShellProps) {
   return (
-    <div className="max-w-app mx-auto px-7">
+    <>
       <a href="#main" className="skip-link">
         Skip to main content
       </a>
-      {!noTopBar && <TopBar />}
-      <main id="main" tabIndex={-1} className="focus:outline-none">
-        {children}
-      </main>
-      {!noFooter && <Footer />}
-    </div>
+      {!noTopBar && <AnnouncementBar />}
+      <div className="max-w-app mx-auto px-7">
+        {!noTopBar && <TopBar />}
+        <main id="main" tabIndex={-1} className="focus:outline-none">
+          {children}
+        </main>
+        {!noFooter && <Footer />}
+      </div>
+    </>
   );
 }
