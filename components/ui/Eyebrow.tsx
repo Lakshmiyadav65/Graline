@@ -1,21 +1,28 @@
-import type { HTMLAttributes, ReactNode } from "react";
+import type { ElementType, HTMLAttributes, ReactNode } from "react";
 
 function cn(...classes: (string | false | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-interface EyebrowProps extends HTMLAttributes<HTMLSpanElement> {
+interface EyebrowProps extends HTMLAttributes<HTMLElement> {
+  /**
+   * Tag to render. Default is `<span>` (presentational kicker above an h2).
+   * Pass `as="h2"` (etc.) when the eyebrow is acting as the section's heading
+   * — e.g. on /browse where the eyebrow is the only labelled identifier
+   * before the chip filter row.
+   */
+  as?: ElementType;
   children: ReactNode;
 }
 
 /**
  * Uppercase label with a 24px paddy line on the left.
- * Matches DESIGN.html .eyebrow (the global ::before is set up in globals.css).
+ * Visual rules live in globals.css (.eyebrow + .eyebrow::before).
  */
-export function Eyebrow({ children, className, ...rest }: EyebrowProps) {
+export function Eyebrow({ as: Tag = "span", children, className, ...rest }: EyebrowProps) {
   return (
-    <span className={cn("eyebrow", className)} {...rest}>
+    <Tag className={cn("eyebrow", className)} {...rest}>
       {children}
-    </span>
+    </Tag>
   );
 }
