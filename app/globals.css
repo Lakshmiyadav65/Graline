@@ -134,6 +134,15 @@ body {
 }
 
 /* =====================================================================
+   Crossfade used by the hero price explorer (keyed remount).
+   ===================================================================== */
+@keyframes gl-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+.animate-gl-fade { animation: gl-fade .28s ease; }
+
+/* =====================================================================
    Reduced motion
    ===================================================================== */
 @media (prefers-reduced-motion: reduce) {

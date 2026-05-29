@@ -4,10 +4,13 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { SectionHead } from "@/components/listing/SectionHead";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { VillageCard } from "@/components/village/VillageCard";
-import { MandiCompareCard } from "@/components/listing/MandiCompareCard";
+import { HeroPriceExplorer, type HeroVariety } from "@/components/home/HeroPriceExplorer";
 import { api } from "@/lib/api/client";
+import type { RiceVariety } from "@/lib/api/types";
 
 export const dynamic = "force-dynamic";
+
+const HERO_VARIETIES: RiceVariety[] = ["sona_masuri", "bpt_5204", "basmati", "red_rice"];
 
 const STEPS = [
   { n: "01 / MON", h: "You order", p: "Browse rice by variety, village, or farmer. Cut-off is Tuesday 9pm IST." },
@@ -17,14 +20,26 @@ const STEPS = [
 ];
 
 export default async function HomePage() {
-  const [featuredRes, villagesRes, compareRes] = await Promise.all([
+  const [featuredRes, villagesRes, mandiRes, ...heroListingRes] = await Promise.all([
     api.listings.featured(3),
     api.villages.list(),
     api.mandi.compare("sona_masuri"),
+    ...HERO_VARIETIES.map((v) => api.listings.list({ variety: v, pageSize: 1 })),
   ]);
   const featured = featuredRes.ok ? featuredRes.data : [];
+  const villageTotal = villagesRes.ok ? villagesRes.data.length : 8;
   const villages = villagesRes.ok ? villagesRes.data.slice(0, 4) : [];
-  const compare = compareRes.ok ? compareRes.data : { mandi_modal_paise: 2200, retail_modal_paise: 8500 };
+  const mandiPaise = mandiRes.ok ? mandiRes.data.mandi_modal_paise : 2200;
+  const heroItems: HeroVariety[] = HERO_VARIETIES.map((v, i) => {
+    const r = heroListingRes[i];
+    const l = r.ok && r.data.listings[0] ? r.data.listings[0] : null;
+    return l
+      ? {
+          variety: v, ourPaise: l.price_per_kg, retailPaise: l.retail_paise, mandiPaise,
+          farmerName: l.farmer.name, villageName: l.farmer.village.name, packKg: 10,
+        }
+      : null;
+  }).filter((x): x is HeroVariety => x !== null);
 
   return (
     <PageShell>
@@ -32,7 +47,7 @@ export default async function HomePage() {
       <section className="py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.9fr] gap-12 lg:gap-[60px] items-end">
           <div>
-            <Eyebrow>Direct from {villages.length || 8} villages</Eyebrow>
+            <Eyebrow>Direct from {villageTotal} villages</Eyebrow>
             <h1
               className="font-serif font-normal mt-4 mb-5 leading-[0.98] tracking-[-0.025em] max-w-[14ch]"
               style={{ fontSize: "clamp(40px, 9vw, 96px)", fontVariationSettings: '"opsz" 144' }}
@@ -66,11 +81,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <MandiCompareCard
-            retailPaise={compare.retail_modal_paise}
-            mandiPaise={compare.mandi_modal_paise}
-            ourPaise={5200}
-          />
+          <HeroPriceExplorer items={heroItems} />
         </div>
       </section>
 
