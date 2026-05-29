@@ -24,9 +24,9 @@ const config: Config = {
         cream:     "var(--cream)",
       },
       fontFamily: {
-        serif: ["Fraunces", "serif"],
-        sans:  ["Inter", "sans-serif"],
-        mono:  ["JetBrains Mono", "monospace"],
+        serif: ["var(--font-fraunces)", "Fraunces", "serif"],
+        sans:  ["var(--font-inter)", "Inter", "sans-serif"],
+        mono:  ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
       },
       boxShadow: {
         soft: "0 1px 0 rgba(29,26,20,.06), 0 12px 40px -20px rgba(29,26,20,.25)",

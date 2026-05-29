@@ -1,29 +1,41 @@
+import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { Eyebrow } from "@/components/ui/Eyebrow";
-import { Card } from "@/components/ui/Card";
-import Link from "next/link";
+import { SectionHead } from "@/components/listing/SectionHead";
+import { ListingCard } from "@/components/listing/ListingCard";
+import { VillageCard } from "@/components/village/VillageCard";
+import { MandiCompareCard } from "@/components/listing/MandiCompareCard";
+import { api } from "@/lib/api/client";
 
-/**
- * M1 stub home page.
- * Verifies fonts (Fraunces hero h1 + Inter body), color tokens (paper bg, terra italic accents,
- * paddy CTAs, gold underline), and the hero-stats + price-card layout.
- *
- * The full home page (with featured listings + villages + how-it-works) ships in M3.
- */
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+const STEPS = [
+  { n: "01 / MON", h: "You order", p: "Browse rice by variety, village, or farmer. Cut-off is Tuesday 9pm IST." },
+  { n: "02 / WED", h: "Farmer confirms", p: "Your farmer gets a WhatsApp confirmation and mills the rice fresh that week." },
+  { n: "03 / FRI", h: "We collect", p: "One weekly route through the villages. Quality checked at pickup." },
+  { n: "04 / SAT", h: "You receive", p: "Delivery to your door or a city pickup point. Farmer paid by Sunday." },
+];
+
+export default async function HomePage() {
+  const [featuredRes, villagesRes, compareRes] = await Promise.all([
+    api.listings.featured(3),
+    api.villages.list(),
+    api.mandi.compare("sona_masuri"),
+  ]);
+  const featured = featuredRes.ok ? featuredRes.data : [];
+  const villages = villagesRes.ok ? villagesRes.data.slice(0, 4) : [];
+  const compare = compareRes.ok ? compareRes.data : { mandi_modal_paise: 2200, retail_modal_paise: 8500 };
+
   return (
     <PageShell>
-      <section className="py-16">
+      {/* Hero */}
+      <section className="py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.9fr] gap-12 lg:gap-[60px] items-end">
-          {/* Left: hero copy */}
           <div>
-            <Eyebrow>Direct from 8 villages</Eyebrow>
+            <Eyebrow>Direct from {villages.length || 8} villages</Eyebrow>
             <h1
               className="font-serif font-normal mt-4 mb-5 leading-[0.98] tracking-[-0.025em] max-w-[14ch]"
-              style={{
-                fontSize: "clamp(48px, 7vw, 96px)",
-                fontVariationSettings: '"opsz" 144',
-              }}
+              style={{ fontSize: "clamp(40px, 9vw, 96px)", fontVariationSettings: '"opsz" 144' }}
             >
               Rice with a <em className="text-terra font-medium">name</em>, a{" "}
               <span className="gold-underline">place</span>, and a fair price.
@@ -47,39 +59,67 @@ export default function HomePage() {
               </Link>
             </div>
 
-            {/* Hero stats — verifies Fraunces large-num + terra italic accent */}
-            <div className="mt-12 border-t border-line pt-6 grid grid-cols-3 gap-6">
+            <div className="mt-12 border-t border-line pt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
               <Stat num={<em className="text-terra not-italic">147</em>} label="FARMERS ENROLLED" />
               <Stat num="8" label="VILLAGES IN NETWORK" />
               <Stat num={<><em className="text-terra not-italic">₹18</em>/kg</>} label="AVG. EXTRA TO FARMER" />
             </div>
           </div>
 
-          {/* Right: price-card — verifies cream card + gradient stripe */}
-          <Card className="p-6 shadow-soft relative overflow-hidden">
-            {/* 3-color top stripe */}
-            <div
-              className="absolute top-0 left-0 right-0 h-1"
-              style={{
-                background:
-                  "linear-gradient(90deg, var(--terra) 0 30%, var(--gold) 30% 60%, var(--paddy) 60% 100%)",
-              }}
-            />
-            <h3 className="font-serif text-[20px] font-medium mb-3.5">Why direct costs less</h3>
-            <PriceRow label="Branded retail (Sona Masuri 10kg)" val="₹85/kg" tone="strike" />
-            <PriceRow label="Local mandi rate (paddy)"           val="₹22/kg" />
-            <PriceRow label="Grainline farmer price"             val="₹52/kg" tone="hi" />
-            <div className="mt-3.5 px-3.5 py-2.5 bg-paddy text-cream rounded-[4px] text-[13px] flex justify-between items-center">
-              <span>You save vs. branded retail</span>
-              <strong className="font-serif text-[18px] font-semibold">₹330 / 10kg</strong>
-            </div>
-          </Card>
+          <MandiCompareCard
+            retailPaise={compare.retail_modal_paise}
+            mandiPaise={compare.mandi_modal_paise}
+            ourPaise={5200}
+          />
         </div>
+      </section>
 
-        {/* M1 verification note */}
-        <p className="mt-20 text-[12px] text-muted font-mono">
-          M1 stub — verifies tokens, fonts, primitives. Featured listings + villages + how-it-works ship in M3.
-        </p>
+      {/* Featured listings */}
+      <section className="py-16 border-t border-line">
+        <SectionHead
+          title={<>This season&apos;s <em className="text-paddy">harvest</em></>}
+          sub="Fresh from the latest season. Limited stock from each farmer."
+          cta={{ label: "View all rice →", href: "/browse" }}
+        />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {featured.map((l) => (
+            <ListingCard key={l.id} listing={l} />
+          ))}
+        </div>
+      </section>
+
+      {/* Villages */}
+      <section className="py-16 border-t border-line">
+        <SectionHead
+          title={<>Meet the <em className="text-paddy">villages</em></>}
+          sub="Each village has its soil, its water, its varieties. Eight villages, one network."
+          cta={{ label: "All villages →", href: "/villages" }}
+        />
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
+          {villages.map((v) => (
+            <VillageCard key={v.id} village={v} />
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="py-16 border-t border-line">
+        <h2 className="font-serif text-[clamp(28px,4vw,48px)] font-normal mb-2">
+          How <em className="text-paddy">Grainline</em> works
+        </h2>
+        <p className="text-muted text-[15px] mb-9">A weekly rhythm that respects both the field and the kitchen.</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-line">
+          {STEPS.map((s, i) => (
+            <div
+              key={s.n}
+              className={"p-7 px-6 border-line border-b lg:border-b-0 " + (i < STEPS.length - 1 ? "lg:border-r" : "")}
+            >
+              <span className="font-serif text-[14px] text-terra font-semibold tracking-[0.05em] block mb-4">{s.n}</span>
+              <h4 className="font-serif text-[22px] font-medium mb-2">{s.h}</h4>
+              <p className="text-[14px] text-ink-soft leading-[1.55]">{s.p}</p>
+            </div>
+          ))}
+        </div>
       </section>
     </PageShell>
   );
@@ -88,25 +128,8 @@ export default function HomePage() {
 function Stat({ num, label }: { num: React.ReactNode; label: string }) {
   return (
     <div>
-      <div className="font-serif text-[42px] font-medium tracking-[-0.02em] leading-none">{num}</div>
+      <div className="font-serif text-[36px] sm:text-[42px] font-medium tracking-[-0.02em] leading-none">{num}</div>
       <div className="text-[12px] text-muted mt-1.5 tracking-[0.05em]">{label}</div>
-    </div>
-  );
-}
-
-function PriceRow({ label, val, tone }: { label: string; val: string; tone?: "strike" | "hi" }) {
-  return (
-    <div className="flex justify-between items-baseline py-2.5 border-b border-dashed border-line-soft last:border-b-0">
-      <span className="text-[13px] text-ink-soft">{label}</span>
-      <span
-        className={
-          "font-mono text-[14px] font-medium " +
-          (tone === "strike" ? "text-muted line-through" : "") +
-          (tone === "hi" ? "text-paddy font-semibold" : "")
-        }
-      >
-        {val}
-      </span>
     </div>
   );
 }

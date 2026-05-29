@@ -4,14 +4,14 @@ function cn(...classes: (string | false | undefined)[]) {
   return classes.filter(Boolean).join(" ");
 }
 
-type Tone = "pending" | "confirmed" | "ready" | "neutral" | "terra" | "paddy";
+export type PillTone = "pending" | "confirmed" | "ready" | "neutral" | "terra" | "paddy";
 
 interface PillProps extends HTMLAttributes<HTMLSpanElement> {
   children: ReactNode;
-  tone?: Tone;
+  tone?: PillTone;
 }
 
-const toneClass: Record<Tone, string> = {
+const toneClass: Record<PillTone, string> = {
   pending:   "bg-[#f5e7c2] text-[#8a6a1a]",
   confirmed: "bg-[#dde6c8] text-[#3d5a1a]",
   ready:     "bg-paddy text-cream",

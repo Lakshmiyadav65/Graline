@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useSession } from "@/lib/auth/session-context";
+import { useCartCount } from "@/lib/cart";
 
 const NAV_LINKS = [
   { href: "/",             label: "Home" },
@@ -18,12 +20,21 @@ function isActive(pathname: string, href: string) {
 
 export function TopBar() {
   const pathname = usePathname() ?? "/";
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const { user, logout } = useSession();
 
-  // M3 will replace this with `useCartStore((s) => s.items.length)`.
-  // Explicit `number` annotation so TS doesn't narrow to literal `0` and
-  // mark the count-dependent branches as dead code.
-  const cartCount: number = 0;
+  // Sell + Cart are buyer-context only (signed-out visitors or customers).
+  const isBuyerContext = !user || user.role === "customer";
+  const roleHome = roleHomeFor(user?.role);
+  const roleLabel = roleLabelFor(user?.role);
+
+  async function handleSignOut() {
+    await logout();
+    router.push("/");
+  }
+
+  const cartCount = useCartCount();
 
   // Close menu when route changes
   useEffect(() => {
@@ -85,44 +96,42 @@ export function TopBar() {
 
         {/* Actions */}
         <div className="flex gap-3 lg:gap-4 items-center shrink-0">
-          {/* Sign in — gap-filler until M2 auth. /login currently routes to
-              our custom 404 with the milestone status grid. */}
-          <Link
-            href="/login"
-            className="hidden lg:inline-flex text-[13px] font-medium text-ink-soft hover:text-ink transition-colors"
-          >
-            Sign in
-          </Link>
+          {isBuyerContext && (
+            <Link
+              href="/sell"
+              className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full text-[13px] font-medium text-ink hover:bg-paddy hover:border-paddy hover:text-cream transition-all"
+            >
+              Sell on Grainline
+            </Link>
+          )}
 
-          <Link
-            href="/sell"
-            className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full text-[13px] font-medium text-ink hover:bg-paddy hover:border-paddy hover:text-cream transition-all"
-          >
-            Sell on Grainline
-          </Link>
+          {/* Cart — buyers only. Bag icon + count badge (hidden when 0;
+              wired to the cart store in M3). */}
+          {isBuyerContext && (
+            <Link
+              href="/cart"
+              aria-label={
+                cartCount > 0
+                  ? `Cart (${cartCount} item${cartCount === 1 ? "" : "s"})`
+                  : "Cart"
+              }
+              className="relative inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full bg-ink text-paper text-[13px] font-medium hover:bg-paddy hover:border-paddy transition-all"
+            >
+              <BagIcon />
+              <span>Cart</span>
+              {cartCount > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="ml-1 bg-terra text-white text-[10px] font-semibold leading-none px-1.5 py-1 rounded-full min-w-[18px] text-center"
+                >
+                  {cartCount > 99 ? "99+" : cartCount}
+                </span>
+              )}
+            </Link>
+          )}
 
-          {/* Cart — bag icon + label + count badge (hidden when 0).
-              Badge wiring lands in M3 when the cart store ships. */}
-          <Link
-            href="/cart"
-            aria-label={
-              cartCount > 0
-                ? `Cart (${cartCount} item${cartCount === 1 ? "" : "s"})`
-                : "Cart"
-            }
-            className="relative inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full bg-ink text-paper text-[13px] font-medium hover:bg-paddy hover:border-paddy transition-all"
-          >
-            <BagIcon />
-            <span>Cart</span>
-            {cartCount > 0 && (
-              <span
-                aria-hidden="true"
-                className="ml-1 bg-terra text-white text-[10px] font-semibold leading-none px-1.5 py-1 rounded-full min-w-[18px] text-center"
-              >
-                {cartCount > 99 ? "99+" : cartCount}
-              </span>
-            )}
-          </Link>
+          {/* Account / Sign in */}
+          <AccountControl />
 
           {/* Mobile menu toggle */}
           <button
@@ -182,24 +191,127 @@ export function TopBar() {
           {/* Secondary actions, surfaced in the mobile panel since they're
               hidden from the desktop topbar at sm/md. */}
           <li className="mt-2 pt-3 border-t border-line-soft">
-            <Link
-              href="/login"
-              className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
-            >
-              Sign in
-            </Link>
+            {user ? (
+              <Link
+                href={roleHome}
+                className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
+              >
+                {roleLabel}
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
+              >
+                Sign in
+              </Link>
+            )}
           </li>
-          <li>
-            <Link
-              href="/sell"
-              className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
-            >
-              Sell on Grainline
-            </Link>
-          </li>
+          {isBuyerContext && (
+            <li>
+              <Link
+                href="/sell"
+                className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
+              >
+                Sell on Grainline
+              </Link>
+            </li>
+          )}
+          {user && (
+            <li>
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="block w-full text-left py-3 pl-[18px] text-[15px] font-medium text-terra hover:text-terra-2 transition-colors"
+              >
+                Sign out
+              </button>
+            </li>
+          )}
         </ul>
       </nav>
     </header>
+  );
+}
+
+function roleHomeFor(role?: "customer" | "farmer" | "admin"): string {
+  if (role === "admin") return "/admin";
+  if (role === "farmer") return "/farmer-app";
+  return "/orders";
+}
+
+function roleLabelFor(role?: "customer" | "farmer" | "admin"): string {
+  if (role === "admin") return "Admin console";
+  if (role === "farmer") return "Farmer dashboard";
+  return "Your orders";
+}
+
+function initials(name: string): string {
+  return name
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase() ?? "")
+    .join("");
+}
+
+/** Signed-out → "Sign in" link. Signed-in → avatar chip + disclosure menu. */
+function AccountControl() {
+  const { user, logout } = useSession();
+  const router = useRouter();
+
+  if (!user) {
+    return (
+      <Link
+        href="/login"
+        className="hidden lg:inline-flex text-[13px] font-medium text-ink-soft hover:text-ink transition-colors"
+      >
+        Sign in
+      </Link>
+    );
+  }
+
+  async function handleSignOut() {
+    await logout();
+    router.push("/");
+  }
+
+  return (
+    <details className="relative">
+      <summary className="list-none cursor-pointer inline-flex items-center gap-1.5 text-[13px] font-medium text-ink hover:text-paddy transition-colors [&::-webkit-details-marker]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paddy rounded-full">
+        <span className="w-7 h-7 rounded-full bg-paddy text-cream grid place-items-center font-serif text-[12px] leading-none">
+          {initials(user.name)}
+        </span>
+        <span className="hidden sm:inline max-w-[10ch] truncate">{user.name.split(/\s+/)[0]}</span>
+        <ChevronDown />
+      </summary>
+      <div className="absolute right-0 mt-2 w-56 bg-cream border border-line rounded-card-lg shadow-soft py-1 z-50">
+        <div className="px-4 py-2.5 border-b border-line-soft">
+          <div className="text-[13px] font-medium text-ink truncate">{user.name}</div>
+          <div className="text-[11px] text-muted font-mono">{user.phone}</div>
+        </div>
+        <Link
+          href={roleHomeFor(user.role)}
+          className="block px-4 py-2.5 text-[14px] text-ink-soft hover:bg-paper-2 hover:text-ink transition-colors"
+        >
+          {roleLabelFor(user.role)}
+        </Link>
+        <button
+          type="button"
+          onClick={handleSignOut}
+          className="block w-full text-left px-4 py-2.5 text-[14px] text-terra hover:bg-paper-2 transition-colors"
+        >
+          Sign out
+        </button>
+      </div>
+    </details>
+  );
+}
+
+function ChevronDown() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   );
 }
 

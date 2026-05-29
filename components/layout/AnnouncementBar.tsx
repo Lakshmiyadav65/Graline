@@ -21,11 +21,19 @@ export function AnnouncementBar() {
 
   return (
     <div className="bg-paddy text-cream">
-      <div className="max-w-app mx-auto px-7 py-2 flex items-center justify-between gap-4 text-[12px] font-mono">
+      <div className="max-w-app mx-auto px-7 py-2 flex items-center justify-between gap-4 text-[11px] sm:text-[12px] font-mono">
+        {/* Concise on phones, full from sm up — avoids truncation at 375px */}
         <p className="truncate">
-          Order by <span className="font-medium text-gold">Tue 21:00 IST</span>
-          {" · "}
-          Delivery <span className="font-medium text-gold">{satLabel}</span>
+          <span className="sm:hidden">
+            By <span className="font-medium text-gold">Tue 9pm</span>
+            {" · "}
+            <span className="font-medium text-gold">{satLabel}</span>
+          </span>
+          <span className="hidden sm:inline">
+            Order by <span className="font-medium text-gold">Tue 21:00 IST</span>
+            {" · "}
+            Delivery <span className="font-medium text-gold">{satLabel}</span>
+          </span>
         </p>
         <p className="hidden md:block text-cream/70 whitespace-nowrap">
           Free home delivery over ₹2,000
