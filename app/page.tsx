@@ -56,8 +56,9 @@ export default async function HomePage() {
               <span className="gold-underline">place</span>, and a fair price.
             </h1>
             <p className="text-[18px] leading-[1.55] text-ink-soft max-w-[52ch] mb-8">
-              No middlemen. No mystery brand. Just paddy grown by farmers you can call by name,
-              milled this season, delivered to your door.
+              From eight Telangana villages to your kitchen — milled the week you order,
+              delivered Saturday. Farmers earn twice the mandi rate; you pay 30–40% less
+              than branded retail.
             </p>
             <div className="flex gap-3 flex-wrap">
               <Link
