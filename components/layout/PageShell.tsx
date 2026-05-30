@@ -15,15 +15,12 @@ interface PageShellProps {
  * App-wide layout shell. The AnnouncementBar is full-bleed; everything below
  * sits inside the max-w-app container that mirrors DESIGN.html .app.
  *
- * A "Skip to main content" link is the first focusable element so keyboard
- * users can bypass both the announcement bar and topbar nav.
+ * <main id="main"> kept as a semantic landmark for screen-reader navigation
+ * even though the visible Skip-to-main-content link has been removed.
  */
 export function PageShell({ children, noFooter, noTopBar }: PageShellProps) {
   return (
     <>
-      <a href="#main" className="skip-link">
-        Skip to main content
-      </a>
       {!noTopBar && <AnnouncementBar />}
       <div className="max-w-app mx-auto px-7">
         {!noTopBar && <TopBar />}
