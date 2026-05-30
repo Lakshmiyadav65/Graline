@@ -24,9 +24,11 @@ const config: Config = {
         cream:     "var(--cream)",
       },
       fontFamily: {
-        serif: ["var(--font-fraunces)", "Fraunces", "serif"],
-        sans:  ["var(--font-inter)", "Inter", "sans-serif"],
-        mono:  ["var(--font-jetbrains)", "JetBrains Mono", "monospace"],
+        // `serif` is a legacy alias — actual font is the display face
+        // (Bricolage Grotesque, a grotesque sans).
+        serif: ["var(--font-display)", "Bricolage Grotesque", "system-ui", "sans-serif"],
+        sans:  ["var(--font-geist-sans)", "Geist", "system-ui", "sans-serif"],
+        mono:  ["var(--font-geist-mono)", "Geist Mono", "ui-monospace", "monospace"],
       },
       boxShadow: {
         soft: "0 1px 0 rgba(29,26,20,.06), 0 12px 40px -20px rgba(29,26,20,.25)",

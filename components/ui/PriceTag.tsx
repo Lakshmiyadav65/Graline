@@ -29,7 +29,7 @@ const unitSizeClass = {
 };
 
 /**
- * Fraunces serif price + optional "/kg" suffix in Inter muted.
+ * Display-face (Bricolage Grotesque) price + optional "/kg" suffix in sans muted.
  * Matches .listing .price / .price-block .now in DESIGN.html.
  */
 export function PriceTag({ paise, perKg = false, size = "md", className }: PriceTagProps) {

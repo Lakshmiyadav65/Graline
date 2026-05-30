@@ -41,7 +41,7 @@ html {
 html, body {
   background: var(--paper);
   color: var(--ink);
-  font-family: var(--font-inter), 'Inter', sans-serif;
+  font-family: var(--font-geist-sans), 'Geist', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -61,8 +61,11 @@ body {
 /* =====================================================================
    Font-family utilities
    ===================================================================== */
-.serif { font-family: var(--font-fraunces), 'Fraunces', serif; font-optical-sizing: auto; }
-.mono  { font-family: var(--font-jetbrains), 'JetBrains Mono', monospace; }
+/* .serif kept as a Tailwind/legacy alias — points at the display face
+   (Bricolage Grotesque). Bricolage is a grotesque sans, not a real serif:
+   the brand voice shifts from "editorial" to "contemporary / a little wonky". */
+.serif { font-family: var(--font-display), 'Bricolage Grotesque', system-ui, sans-serif; font-optical-sizing: auto; }
+.mono  { font-family: var(--font-geist-mono), 'Geist Mono', ui-monospace, monospace; }
 
 /* =====================================================================
    Hero h1 gold underline (used inline on inline spans)
