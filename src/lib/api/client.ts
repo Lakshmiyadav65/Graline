@@ -8,10 +8,11 @@
 
 import { mockApi } from "./mock";
 import { realApi } from "./real";
+import { supabaseApi } from "./supabase";
 import type { Api } from "./types";
 
-export const USE_MOCK_API = process.env.NEXT_PUBLIC_USE_MOCK_API !== "false";
+export const API_MODE = process.env.NEXT_PUBLIC_API_MODE || "supabase";
 
-export const api: Api = USE_MOCK_API ? mockApi : realApi;
+export const api: Api = API_MODE === "supabase" ? supabaseApi : API_MODE === "real" ? realApi : mockApi;
 
 export * from "./types";

@@ -1,0 +1,9 @@
+{
+  "FarmerDashboard": {
+    "title": "Farmer Dashboard",
+    "welcome": "Welcome back",
+    "orders": "Orders",
+    "listings": "Listings",
+    "payouts": "Payouts"
+  }
+}
