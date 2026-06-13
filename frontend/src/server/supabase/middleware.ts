@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import type { User } from '@supabase/supabase-js'
 import { NextResponse, type NextRequest } from 'next/server'
 import { getLocaleFromLanguage } from '@/lib/i18n'
 
@@ -7,9 +8,20 @@ export async function updateSession(request: NextRequest) {
     request,
   })
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+  // Without credentials createServerClient throws on construction, which crashes
+  // the middleware (MIDDLEWARE_INVOCATION_FAILED) on every request and takes the
+  // whole site down. Degrade gracefully: skip session handling and pass through.
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('[middleware] Missing Supabase environment variables; skipping session handling')
+    return supabaseResponse
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         getAll() {
@@ -28,10 +40,14 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  // refreshing the auth token
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  // refreshing the auth token — never let an auth/network error crash middleware
+  let user: User | null = null
+  try {
+    const result = await supabase.auth.getUser()
+    user = result.data.user
+  } catch (err) {
+    console.error('[middleware] supabase.auth.getUser() failed:', err)
+  }
 
   // Define role-based routing
   const url = request.nextUrl.clone()
@@ -44,14 +60,19 @@ export async function updateSession(request: NextRequest) {
 
   if (user) {
     // Authenticated
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, preferred_language')
-      .eq('id', user.id)
-      .single()
-      
-    role = profile?.role || (user.user_metadata?.role as string) || 'customer'
-    prefLang = profile?.preferred_language || null
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, preferred_language')
+        .eq('id', user.id)
+        .single()
+
+      role = profile?.role || (user.user_metadata?.role as string) || 'customer'
+      prefLang = profile?.preferred_language || null
+    } catch (err) {
+      console.error('[middleware] profile lookup failed:', err)
+      role = (user.user_metadata?.role as string) || 'customer'
+    }
     if (prefLang) {
       prefLangLocale = getLocaleFromLanguage(prefLang)
     }
