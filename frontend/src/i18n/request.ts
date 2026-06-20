@@ -2,15 +2,44 @@ import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 import { createClient } from '@/server/supabase/server';
 import { getLocaleFromLanguage } from '@/lib/i18n';
-import { readFileSync } from 'fs';
-import { join } from 'path';
+import enMessages from '../../messages/en.json';
+
+// Statically wire up locale loaders so the bundler includes the JSON files in the
+// serverless function. (Previously these were read with readFileSync at runtime,
+// which works locally but is NOT traced into the Vercel build — the files were
+// missing in production, so every key rendered as its raw name e.g. "home.title".)
+const LOCALE_LOADERS: Record<string, () => Promise<Record<string, unknown>>> = {
+  en: async () => enMessages,
+  hi: async () => (await import('../../messages/hi.json')).default,
+  kn: async () => (await import('../../messages/kn.json')).default,
+  ta: async () => (await import('../../messages/ta.json')).default,
+  te: async () => (await import('../../messages/te.json')).default,
+};
+
+// Helper function to deep merge two objects (locale on top of English fallback).
+function deepMerge(target: any, source: any): any {
+  const output = { ...target };
+  if (target && typeof target === 'object' && source && typeof source === 'object') {
+    Object.keys(source).forEach((key) => {
+      if (source[key] && typeof source[key] === 'object') {
+        if (!(key in target)) {
+          output[key] = source[key];
+        } else {
+          output[key] = deepMerge(target[key], source[key]);
+        }
+      } else {
+        output[key] = source[key];
+      }
+    });
+  }
+  return output;
+}
 
 export default getRequestConfig(async () => {
   const cookieStore = cookies();
   const nextLocaleCookie = cookieStore.get('NEXT_LOCALE')?.value || null;
-  
+
   let resolvedLocale: string | null = null;
-  let profileLang: string | null = null;
 
   try {
     const supabase = createClient();
@@ -21,10 +50,9 @@ export default getRequestConfig(async () => {
         .select('preferred_language')
         .eq('id', user.id)
         .single();
-      
+
       if (profile?.preferred_language) {
-        profileLang = profile.preferred_language;
-        resolvedLocale = getLocaleFromLanguage(profileLang);
+        resolvedLocale = getLocaleFromLanguage(profile.preferred_language);
       }
     }
   } catch (err) {
@@ -32,62 +60,22 @@ export default getRequestConfig(async () => {
   }
 
   // Fallback hierarchy: 1. Cookie value, 2. Profile language, 3. 'en' final fallback
-  const locale = nextLocaleCookie || resolvedLocale || 'en';
+  const requested = nextLocaleCookie || resolvedLocale || 'en';
+  const locale = LOCALE_LOADERS[requested] ? requested : 'en';
 
-  // Read message file directly from filesystem to prevent any bundling/encoding corruption
-  let messages = {};
-  let keyCount = 0;
-
-  // Helper function to deep merge two objects
-  function deepMerge(target: any, source: any): any {
-    const output = { ...target };
-    if (target && typeof target === 'object' && source && typeof source === 'object') {
-      Object.keys(source).forEach(key => {
-        if (source[key] && typeof source[key] === 'object') {
-          if (!(key in target)) {
-            output[key] = source[key];
-          } else {
-            output[key] = deepMerge(target[key], source[key]);
-          }
-        } else {
-          output[key] = source[key];
-        }
-      });
-    }
-    return output;
-  }
-
-  // Load English messages as the base fallback
-  let enMessages = {};
-  try {
-    const enFilePath = join(process.cwd(), 'messages', 'en.json');
-    const enFileContent = readFileSync(enFilePath, 'utf-8');
-    enMessages = JSON.parse(enFileContent);
-  } catch (err) {
-    console.error(`[i18n-verification-error] Failed to read base English translation file: ${err}`);
-  }
-
-  if (locale === 'en') {
-    messages = enMessages;
-    keyCount = Object.keys(messages).length;
-  } else {
+  let messages: Record<string, unknown> = enMessages;
+  if (locale !== 'en') {
     try {
-      const filePath = join(process.cwd(), 'messages', `${locale}.json`);
-      const fileContent = readFileSync(filePath, 'utf-8');
-      const localeMessages = JSON.parse(fileContent);
+      const localeMessages = await LOCALE_LOADERS[locale]();
       messages = deepMerge(enMessages, localeMessages);
-      keyCount = Object.keys(localeMessages).length;
     } catch (err) {
-      console.error(`[i18n-verification-error] Failed to read translation file for ${locale}: ${err}`);
-      messages = enMessages; // Fallback to English messages on error
+      console.error(`[i18n] Failed to load translation file for "${locale}", falling back to English: ${err}`);
+      messages = enMessages;
     }
   }
-
-  // Temporarily log verification stats to identify mismatch
-  console.log(`[i18n-verification-request] Profile Language: "${profileLang || 'undefined'}", Current Locale Code: "${locale}", Cookie NEXT_LOCALE Value: "${nextLocaleCookie || 'undefined'}", Loaded Translation File: "messages/${locale}.json", Key Count: ${keyCount}`);
 
   return {
     locale,
-    messages
+    messages,
   };
 });
