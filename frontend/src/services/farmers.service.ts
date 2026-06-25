@@ -14,7 +14,7 @@ export class FarmersService {
       .from('farmers')
       .select(`
         *,
-        profiles:id (full_name, phone_number, preferred_language),
+        profiles:profiles!farmers_id_fkey (full_name, phone_number, preferred_language),
         villages:village_id (name, state, district)
       `)
       .eq('id', farmerId)

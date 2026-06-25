@@ -15,7 +15,7 @@ export class ListingsService {
       .select(`
         *,
         farmers:farmer_id (
-          profiles:id (full_name),
+          profiles:profiles!farmers_id_fkey (full_name),
           villages:village_id (name, district)
         ),
         listing_images (image_url, is_primary)
@@ -38,7 +38,7 @@ export class ListingsService {
         *,
         farmers:farmer_id (
           bio,
-          profiles:id (full_name),
+          profiles:profiles!farmers_id_fkey (full_name),
           villages:village_id (name, district, state)
         ),
         listing_images (id, image_url, is_primary)

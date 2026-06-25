@@ -454,7 +454,7 @@ export const supabaseApi: Api = {
           photos,
           farmers:farmer_id (
             id,
-            profiles:id ( full_name ),
+            profiles:profiles!farmers_id_fkey ( full_name ),
             villages:village_id ( name )
           )
         `)
@@ -1141,7 +1141,7 @@ export const supabaseApi: Api = {
           id,
           farm_size_acres,
           created_at,
-          profiles:id (full_name, phone_number),
+          profiles:profiles!farmers_id_fkey (full_name, phone_number),
           villages:village_id (name)
         `)
         .eq('status', 'pending');
@@ -1451,7 +1451,7 @@ export const supabaseApi: Api = {
           created_at,
           farmers:farmer_id (
             upi_id,
-            profiles:id (
+            profiles:profiles!farmers_id_fkey (
               full_name
             )
           )
