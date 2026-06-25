@@ -384,27 +384,67 @@ export const supabaseApi: Api = {
 
   orders: {
     async create(req) {
+      console.log('[Checkout Flow] Starting checkout process...');
       // 1. Get session
       const { data: auth } = await supabase.auth.getSession();
-      if (!auth.session) return fail("UNAUTHORIZED", "Not signed in");
+      if (!auth.session) {
+        console.warn('[Checkout Flow] Order placement aborted: user not signed in.');
+        return fail("UNAUTHORIZED", "Not signed in");
+      }
       
-      // 2. Call RPC to safely deduct stock and create order items
+      const userId = auth.session.user.id;
+      console.log(`[Checkout Flow] User ID: ${userId}. Verifying customer record in customers table...`);
+
+      // 2. Ensure customer record exists in customers table
+      const { data: customerExists, error: customerCheckError } = await supabase
+        .from('customers')
+        .select('id')
+        .eq('id', userId)
+        .maybeSingle();
+
+      if (customerCheckError) {
+        console.error('[Checkout Flow] Failed to query customers table:', customerCheckError);
+        return fail("INTERNAL", `Customer check failed: ${customerCheckError.message}`);
+      }
+
+      if (!customerExists) {
+        console.log(`[Checkout Flow] Customer record missing. Automatically creating customer linked to profile: ${userId}`);
+        const { error: customerCreateError } = await supabase
+          .from('customers')
+          .insert({ id: userId });
+          
+        if (customerCreateError) {
+          console.error('[Checkout Flow] Failed to create customer record:', customerCreateError);
+          return fail("INTERNAL", `Failed to initialize customer record: ${customerCreateError.message}`);
+        }
+        console.log('[Checkout Flow] Customer record created successfully.');
+      } else {
+        console.log('[Checkout Flow] Customer record exists.');
+      }
+
+      // 3. Call RPC to safely deduct stock and create order items
+      console.log('[Checkout Flow] Calling create_order RPC transaction...');
       const itemsForRpc = req.items.map(it => ({ listing_id: it.listing_id, quantity_kg: it.pack_kg * it.qty }));
       
       const { data: orderId, error } = await supabase.rpc('create_order', {
-        p_customer_id: auth.session.user.id,
+        p_customer_id: userId,
         p_shipping_address: JSON.stringify(req.delivery_address),
         p_items: itemsForRpc
       });
       
-      if (error) return fail("CONFLICT", error.message);
+      if (error) {
+        console.error('[Checkout Flow] create_order RPC failed:', error);
+        return fail("CONFLICT", error.message);
+      }
+      console.log(`[Checkout Flow] RPC transaction successful. Created order ID: ${orderId}`);
       
-      // 3. Update extra metadata we added in schema extension
+      // 4. Update extra metadata we added in schema extension
       const orderNumber = "GL-" + orderId.substring(0, 6).toUpperCase();
+      console.log(`[Checkout Flow] Populating order metadata for order number: ${orderNumber}`);
       
       // Fetch details for the listings to denormalize into order_items
       const listingIds = req.items.map(it => it.listing_id);
-      const { data: listings } = await supabase
+      const { data: listings, error: listingsErr } = await supabase
         .from('listings')
         .select(`
           id,
@@ -420,6 +460,11 @@ export const supabaseApi: Api = {
         `)
         .in('id', listingIds);
         
+      if (listingsErr) {
+        console.error('[Checkout Flow] Failed to fetch listing details for decoration:', listingsErr);
+        return fail("INTERNAL", `Failed to resolve listings: ${listingsErr.message}`);
+      }
+
       const listingsMap = (listings || []).reduce((acc: any, l: any) => {
         acc[l.id] = l;
         return acc;
@@ -429,10 +474,15 @@ export const supabaseApi: Api = {
       let totalSubtotalPaise = 0;
       
       // Get created order items
-      const { data: createdItems } = await supabase
+      const { data: createdItems, error: itemsFetchErr } = await supabase
         .from('order_items')
         .select('id, listing_id')
         .eq('order_id', orderId);
+        
+      if (itemsFetchErr) {
+        console.error('[Checkout Flow] Failed to query created order items:', itemsFetchErr);
+        return fail("INTERNAL", `Failed to retrieve order items: ${itemsFetchErr.message}`);
+      }
         
       for (const item of (createdItems || [])) {
         const inputItem = req.items.find(it => it.listing_id === item.listing_id);
@@ -444,7 +494,7 @@ export const supabaseApi: Api = {
           const subtotalPaise = Math.round(pricePerKg * packKg * qty * 100);
           totalSubtotalPaise += subtotalPaise;
           
-          await supabase
+          const { error: itemUpdateErr } = await supabase
             .from('order_items')
             .update({
               farmer_id: listing.farmers?.id,
@@ -457,6 +507,11 @@ export const supabaseApi: Api = {
               photo_url: (listing.photos && listing.photos[0]) || null,
             })
             .eq('id', item.id);
+
+          if (itemUpdateErr) {
+            console.error('[Checkout Flow] Failed to update order item details:', itemUpdateErr);
+            return fail("INTERNAL", `Failed to update order item: ${itemUpdateErr.message}`);
+          }
         }
       }
       
@@ -467,7 +522,7 @@ export const supabaseApi: Api = {
       const commissionRupees = subtotalRupees * 0.1; // 10% commission
       const totalRupees = subtotalRupees + deliveryFeeRupees + codFeeRupees;
 
-      await supabase.from('orders').update({
+      const { error: orderUpdateErr } = await supabase.from('orders').update({
         order_number: orderNumber,
         fulfillment_type: req.fulfillment_type,
         delivery_address: req.delivery_address,
@@ -481,15 +536,26 @@ export const supabaseApi: Api = {
         delivery_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days from now
       }).eq('id', orderId);
 
+      if (orderUpdateErr) {
+        console.error('[Checkout Flow] Failed to update order metadata:', orderUpdateErr);
+        return fail("INTERNAL", `Failed to complete order details update: ${orderUpdateErr.message}`);
+      }
+      console.log('[Checkout Flow] Database records updated successfully.');
+
       // Trigger order email sending asynchronously
+      console.log('[Checkout Flow] Dispatching notification emails asynchronously...');
       try {
         fetch('/api/orders/confirm-email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ orderId }),
-        }).catch(err => console.error('Asynchronous order email fetch error:', err));
+          keepalive: true,
+        }).then(async (emailRes) => {
+          const emailData = await emailRes.json();
+          console.log('[Checkout Flow] Confirmation email trigger API response:', emailData);
+        }).catch(err => console.error('[Checkout Flow] Asynchronous order email fetch error:', err));
       } catch (err) {
-        console.error('Failed to trigger order confirmation emails:', err);
+        console.error('[Checkout Flow] Failed to trigger order confirmation emails:', err);
       }
       
       const amount = totalSubtotalPaise + (deliveryFeeRupees + codFeeRupees) * 100;
@@ -503,9 +569,20 @@ export const supabaseApi: Api = {
       });
     },
     async verifyPayment(req) {
-      const { error } = await supabase.from('orders').update({ payment_status: 'paid', status: 'confirmed' }).eq('id', req.orderId);
-      if (error) return fail("INTERNAL", error.message);
-      return ok({ orderNumber: "GL-1234" });
+      console.log(`[Checkout Flow] Verifying payment for order ID: ${req.orderId}`);
+      const { data: order, error } = await supabase
+        .from('orders')
+        .update({ payment_status: 'paid', status: 'confirmed' })
+        .eq('id', req.orderId)
+        .select('order_number')
+        .single();
+        
+      if (error || !order) {
+        console.error('[Checkout Flow] Payment verification failed:', error);
+        return fail("INTERNAL", error?.message || "Order not found");
+      }
+      console.log(`[Checkout Flow] Payment verification succeeded. Order number: ${order.order_number}`);
+      return ok({ orderNumber: order.order_number });
     },
     async list() {
       const { data } = await supabase

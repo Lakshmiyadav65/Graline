@@ -12,6 +12,7 @@ import { VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees } from "@/lib/format";
 import type { Village, RiceVariety, RiceType, HarvestSeason, FarmerEnrollRequest, PackSize } from "@/lib/api/types";
 import { useTranslations } from "@/lib/translations";
+import { supabase } from "@/lib/supabase";
 
 const STORAGE_KEY = "gl_enroll";
 const TOTAL_STEPS = 5;
@@ -365,16 +366,43 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 
 function PhotoUpload({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const [uploading, setUploading] = useState(false);
+  const toast = useToast();
   const t = useTranslations("enroll");
 
-  function pick(e: React.ChangeEvent<HTMLInputElement>) {
+  async function pick(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0]) return;
+    const file = e.target.files[0];
+    
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      toast.show("Please log in to upload photos.", "error");
+      return;
+    }
+
     setUploading(true);
-    // Mock Cloudinary upload — real signed upload lands in BE-M5.
-    setTimeout(() => {
-      onChange("https://res.cloudinary.com/demo/image/upload/v1/grainline/uploads/farmer.jpg");
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${session.user.id}/${Date.now()}-${Math.random()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("farmer-images")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from("farmer-images").getPublicUrl(fileName);
+      if (data?.publicUrl) {
+        onChange(data.publicUrl);
+        toast.show("Photo uploaded successfully", "success");
+      }
+    } catch (err: any) {
+      toast.show(err.message || "Failed to upload photo", "error");
+    } finally {
       setUploading(false);
-    }, 600);
+    }
   }
   return (
     <div className="mb-3.5">

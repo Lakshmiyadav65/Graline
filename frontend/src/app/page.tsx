@@ -6,6 +6,7 @@ import { ListingCard } from "@/components/listing/ListingCard";
 import { VillageCard } from "@/components/village/VillageCard";
 import { HeroPriceExplorer, type HeroVariety } from "@/components/home/HeroPriceExplorer";
 import { api } from "@/lib/api/client";
+import { createClient } from "@/server/supabase/server";
 import type { RiceVariety } from "@/lib/api/types";
 
 export const dynamic = "force-dynamic";
@@ -13,16 +14,19 @@ export const dynamic = "force-dynamic";
 const HERO_VARIETIES: RiceVariety[] = ["sona_masuri", "bpt_5204", "basmati", "red_rice"];
 
 export default async function HomePage() {
-  const [featuredRes, villagesRes, mandiRes, ...heroListingRes] = await Promise.all([
+  const supabaseServer = createClient();
+  const [featuredRes, villagesRes, mandiRes, farmerCountRes, ...heroListingRes] = await Promise.all([
     api.listings.featured(3),
     api.villages.list(),
     api.mandi.compare("sona_masuri"),
+    supabaseServer.from("farmers").select("*", { count: "exact", head: true }),
     ...HERO_VARIETIES.map((v) => api.listings.list({ variety: v, pageSize: 1 })),
   ]);
   const featured = featuredRes.ok ? featuredRes.data : [];
   const villageTotal = villagesRes.ok ? villagesRes.data.length : 8;
   const villages = villagesRes.ok ? villagesRes.data.slice(0, 4) : [];
   const mandiPaise = mandiRes.ok ? mandiRes.data.mandi_modal_paise : 2200;
+  const farmerTotal = farmerCountRes.count !== null ? farmerCountRes.count : 147;
   const heroItems: HeroVariety[] = HERO_VARIETIES.map((v, i) => {
     const r = heroListingRes[i];
     const l = r.ok && r.data.listings[0] ? r.data.listings[0] : null;
@@ -73,7 +77,7 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-12 border-t border-line pt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
-              <Stat num={<em className="text-terra not-italic">147</em>} label="Farmers enrolled" />
+              <Stat num={<em className="text-terra not-italic">{farmerTotal}</em>} label="Farmers enrolled" />
               <Stat num={String(villageTotal)} label="Villages in network" />
               <Stat num={<><em className="text-terra not-italic">₹8–14</em></>} label="Extra per kg for farmers" />
             </div>
