@@ -14,6 +14,7 @@ export interface SessionUser {
   name: string;
   phone: string;
   role: Role;
+  email?: string | null;
   preferred_language?: string | null;
 }
 
@@ -52,6 +53,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
         name: profile?.full_name || "User",
         phone: profile?.phone_number || "",
         role: (profile?.role as Role) || (session.user.user_metadata?.role as Role) || "customer",
+        email: session.user.email || null,
         preferred_language: prefLang
       });
 

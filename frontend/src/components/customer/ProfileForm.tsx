@@ -151,6 +151,18 @@ export function ProfileForm({ initialProfile, googleUser }: ProfileFormProps) {
 
           <div>
             <label className="block text-[11px] tracking-[0.15em] uppercase text-muted mb-1.5 font-semibold">
+              {t("email")}
+            </label>
+            <input
+              type="email"
+              value={googleUser.email || ""}
+              disabled
+              className="w-full px-3.5 py-2.5 border border-line rounded-[5px] bg-paper-2 text-[15px] text-ink-soft cursor-not-allowed font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[11px] tracking-[0.15em] uppercase text-muted mb-1.5 font-semibold">
               {t("phone")}
             </label>
             <div className="flex">
@@ -289,6 +301,12 @@ export function ProfileForm({ initialProfile, googleUser }: ProfileFormProps) {
         <div>
           <label className="block text-[11px] tracking-[0.15em] uppercase text-muted mb-1 font-semibold">{t("fullName")}</label>
           <div className="text-[16px] text-ink font-medium">{profile.full_name || googleName || "Grainline User"}</div>
+        </div>
+
+        {/* Email */}
+        <div>
+          <label className="block text-[11px] tracking-[0.15em] uppercase text-muted mb-1 font-semibold">{t("email")}</label>
+          <div className="text-[16px] text-ink font-mono">{googleUser.email || "No email linked"}</div>
         </div>
 
         {/* Phone: Only show if set */}

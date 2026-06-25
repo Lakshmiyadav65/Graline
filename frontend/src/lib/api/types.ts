@@ -155,6 +155,7 @@ export interface SessionUser {
   name: string;
   phone: string;
   role: Role;
+  email?: string | null;
 }
 
 export interface RequestOtpResponse {

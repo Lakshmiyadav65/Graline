@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/server/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { resend } from '@/lib/resend';
 import { generateCustomerOrderEmail, generateOperationsOrderEmail } from '@/lib/emails/templates';
 
@@ -25,11 +26,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
     }
 
-    // 2. Fetch Customer Auth User (for email address)
-    const { data: { user }, error: userErr } = await supabase.auth.getUser();
-    if (userErr || !user) {
-      console.error('User auth query error:', userErr);
-      return NextResponse.json({ success: false, error: 'Customer session not found' }, { status: 401 });
+    // 2. Fetch Customer Auth User (for email address) via Admin Client to bypass cookie session limits
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('Missing administrative Supabase keys in environment');
+      return NextResponse.json({ success: false, error: 'Missing configuration' }, { status: 500 });
+    }
+
+    const supabaseAdmin = createAdminClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    const { data: adminUserRes, error: adminUserErr } = await supabaseAdmin.auth.admin.getUserById(order.customer_id);
+    const user = adminUserRes?.user;
+    if (adminUserErr || !user) {
+      console.error('Admin user auth query error:', adminUserErr);
+      return NextResponse.json({ success: false, error: 'Customer auth record not found' }, { status: 404 });
     }
 
     // 3. Fetch Customer Profile details
@@ -165,13 +181,17 @@ export async function POST(request: Request) {
       });
     }
 
-    // 8. Send Operations Email (to grainline19@gmail.com as specified)
+    // 8. Send Operations Email (to operations email destination)
+    const opsRecipient = process.env.OPERATIONS_EMAIL || 'grainline19@gmail.com';
     const operationsEmailRes = await resend.emails.send({
       from: 'Grainline Alerts <onboarding@resend.dev>',
-      to: 'grainline19@gmail.com', // fallback as per instructions
+      to: opsRecipient,
       subject: `[Logistics Alert] New Order ${order.order_number} placed by ${customerName}`,
       html: operationsEmailHtml,
     });
+
+    console.log(`[Order Email] Dispatched customer confirmation email to: ${user.email}, res:`, customerEmailRes);
+    console.log(`[Order Email] Dispatched operations alert email to: ${opsRecipient}, res:`, operationsEmailRes);
 
     return NextResponse.json({
       success: true,

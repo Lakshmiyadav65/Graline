@@ -164,7 +164,8 @@ export const supabaseApi: Api = {
           id: data.session.user.id, 
           phone: profile?.phone_number || data.session.user.phone || "", 
           name: profile?.full_name || "User", 
-          role: (profile?.role as Role) || "customer" 
+          role: (profile?.role as Role) || (data.session.user.user_metadata?.role as Role) || "customer",
+          email: data.session.user.email || null
         } 
       });
     },

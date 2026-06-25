@@ -36,6 +36,11 @@ function LoginInner() {
       provider: 'google',
       options: {
         redirectTo: `${location.origin}/auth/callback?next=${redirectNext}`,
+        scopes: 'email profile',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
         data: {
           role: selectedRole,
         },

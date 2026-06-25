@@ -259,6 +259,7 @@
     "profileUpdated": "Profile updated successfully",
     "editTitle": "Edit Profile",
     "fullName": "Full Name",
+    "email": "Email Address",
     "phone": "Phone Number",
     "prefLanguage": "Preferred Language",
     "deliveryAddress": "Delivery Address",
