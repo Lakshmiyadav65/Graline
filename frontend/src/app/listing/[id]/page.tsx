@@ -7,7 +7,7 @@ import { ListingActions } from "@/components/listing/ListingActions";
 import { api } from "@/lib/api/client";
 import { VARIETY_GRADIENT } from "@/lib/labels";
 import { formatKg, formatDate } from "@/lib/format";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 

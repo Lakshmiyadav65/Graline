@@ -11,7 +11,7 @@ import { api } from "@/lib/api/client";
 import { formatRupees, formatDate } from "@/lib/format";
 import { orderStatusTone } from "@/lib/labels";
 import type { Order } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function OrderDetailInner() {
   const params = useParams<{ orderNumber: string }>();

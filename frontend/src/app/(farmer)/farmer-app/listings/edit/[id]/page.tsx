@@ -10,7 +10,7 @@ import { VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees } from "@/lib/format";
 import { MultipleImageUpload } from "@/components/farmer/MultipleImageUpload";
 import type { RiceVariety, RiceType, HarvestSeason, PackSize, ListingInputDTO, ListingStatus } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function packsFrom(base: number): PackSize[] {
   return [
