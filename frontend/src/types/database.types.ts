@@ -54,6 +54,7 @@ export interface Database {
           title: string
           description: string | null
           rice_variety: string
+          rice_variety_other: string | null
           price_per_kg: number
           stock_kg: number
           is_active: boolean
