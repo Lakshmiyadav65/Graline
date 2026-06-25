@@ -70,12 +70,18 @@ export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) 
     if (user) {
       const languageName = LOCALE_TO_LANGUAGE[langCode as keyof typeof LOCALE_TO_LANGUAGE] || "English";
       // Run update in background safely
-      supabase
-        .from("profiles")
-        .update({ preferred_language: languageName })
-        .eq("id", user.id)
-        .then(() => refresh())
-        .catch((err) => console.error("[LanguageSelector] DB sync failed:", err));
+      (async () => {
+        try {
+          const { error } = await supabase
+            .from("profiles")
+            .update({ preferred_language: languageName })
+            .eq("id", user.id);
+          if (error) throw error;
+          await refresh();
+        } catch (err) {
+          console.error("[LanguageSelector] DB sync failed:", err);
+        }
+      })();
     }
 
     if (!isReady && langCode !== "en") {
