@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/ui/Toast";
 import type { Village } from "@/lib/api/types";
 import { getLocaleFromLanguage } from "@/lib/i18n";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 export default function FarmerProfilePage() {
   const toast = useToast();

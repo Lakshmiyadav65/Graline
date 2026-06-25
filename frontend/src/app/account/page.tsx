@@ -3,7 +3,7 @@ import { createClient } from "@/server/supabase/server";
 import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import { ProfileForm } from "@/components/customer/ProfileForm";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 export default async function CustomerAccountPage() {
   const supabase = createClient();

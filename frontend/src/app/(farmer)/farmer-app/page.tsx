@@ -4,7 +4,7 @@ import { farmerService } from "@/services/farmer.service";
 import { createClient } from "@/server/supabase/server";
 import { formatRupees } from "@/lib/format";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 export default async function FarmerDashboardPage() {
   const supabase = createClient();

@@ -1,5 +1,4 @@
 import { getNextSaturday } from "@/lib/format";
-import { useTranslations, useLocale } from "next-intl";
 
 /**
  * Slim paddy strip above the topbar that surfaces Grainline's defining
@@ -7,18 +6,12 @@ import { useTranslations, useLocale } from "next-intl";
  * IST cutoff.
  */
 export function AnnouncementBar() {
-  const t = useTranslations("announcement");
-  const locale = useLocale();
-
-  const istDayMonth = new Intl.DateTimeFormat(
-    locale === "te" ? "te-IN" : locale === "hi" ? "hi-IN" : locale === "ta" ? "ta-IN" : "en-IN",
-    {
-      timeZone: "Asia/Kolkata",
-      weekday: "short",
-      day: "numeric",
-      month: "short",
-    }
-  );
+  const istDayMonth = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 
   const sat = getNextSaturday();
   const satLabel = istDayMonth.format(sat); // e.g. "Sat, 16 May"
@@ -29,21 +22,20 @@ export function AnnouncementBar() {
         {/* Concise on phones, full from sm up — avoids truncation at 375px */}
         <p className="truncate">
           <span className="sm:hidden">
-            {t("by")} <span className="font-medium text-gold">Tue 9pm</span>
+            By <span className="font-medium text-gold">Tue 9pm</span>
             {" · "}
             <span className="font-medium text-gold">{satLabel}</span>
           </span>
           <span className="hidden sm:inline">
-            {t("orderBy")} <span className="font-medium text-gold">Tue 21:00 IST</span>
+            Order by <span className="font-medium text-gold">Tue 21:00 IST</span>
             {" · "}
-            {t("delivery")} <span className="font-medium text-gold">{satLabel}</span>
+            Delivery <span className="font-medium text-gold">{satLabel}</span>
           </span>
         </p>
         <p className="hidden md:block text-cream/70 whitespace-nowrap">
-          {t("freeDelivery")}
+          Free delivery on all orders
         </p>
       </div>
     </div>
   );
 }
-

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { formatRupees } from "@/lib/format";
 import type { RiceVariety } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { VARIETY_LABEL } from "@/lib/labels";
 
 export interface HeroVariety {
   variety: RiceVariety;
@@ -23,8 +23,6 @@ export interface HeroVariety {
  * price"). Crossfades on change; respects prefers-reduced-motion via globals.
  */
 export function HeroPriceExplorer({ items }: { items: HeroVariety[] }) {
-  const t = useTranslations("heroPriceExplorer");
-  const tLabels = useTranslations("labels");
   const [idx, setIdx] = useState(0);
   if (items.length === 0) return null;
 
@@ -41,8 +39,8 @@ export function HeroPriceExplorer({ items }: { items: HeroVariety[] }) {
       />
 
       <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
-        <h3 className="font-serif text-[20px] font-medium">{t("title")}</h3>
-        <span className="text-[11px] font-mono text-paddy bg-[#e9edda] px-2 py-1 rounded-full">−{pctLess}% {t("vsRetail", { pct: pctLess })}</span>
+        <h3 className="font-serif text-[20px] font-medium">Why direct costs less</h3>
+        <span className="text-[11px] font-mono text-paddy bg-[#e9edda] px-2 py-1 rounded-full">−{pctLess}% vs retail</span>
       </div>
 
       {/* Variety selector */}
@@ -59,25 +57,25 @@ export function HeroPriceExplorer({ items }: { items: HeroVariety[] }) {
               (i === idx ? "bg-ink text-paper border-ink" : "border-line text-ink-soft hover:border-ink")
             }
           >
-            {tLabels(`variety.${v.variety}`)}
+            {VARIETY_LABEL[v.variety]}
           </button>
         ))}
       </div>
 
       {/* Keyed → crossfades when variety changes */}
       <div key={it.variety} className="animate-gl-fade">
-        <div className="text-[11px] uppercase tracking-[0.12em] text-muted">{t("grownBy")}</div>
+        <div className="text-[11px] uppercase tracking-[0.12em] text-muted">Grown by</div>
         <div className="font-serif text-[18px] font-medium mb-3">
           {it.farmerName}
           <span className="text-muted font-sans text-[13px] font-normal"> · {it.villageName}</span>
         </div>
 
-        <Row label={t("brandedRetail", { packKg: it.packKg })} val={`${formatRupees(it.retailPaise)}/kg`} tone="strike" />
-        <Row label={t("mandiRate")} val={`${formatRupees(it.mandiPaise)}/kg`} />
-        <Row label={t("grainlinePrice")} val={`${formatRupees(it.ourPaise)}/kg`} tone="hi" />
+        <Row label={`Branded retail (${it.packKg}kg bag)`} val={`${formatRupees(it.retailPaise)}/kg`} tone="strike" />
+        <Row label="Mandi rate" val={`${formatRupees(it.mandiPaise)}/kg`} />
+        <Row label="Grainline price" val={`${formatRupees(it.ourPaise)}/kg`} tone="hi" />
 
         <div className="mt-3.5 px-3.5 py-2.5 bg-paddy text-cream rounded-[4px] text-[13px] flex justify-between items-center">
-          <span>{t("saveVsRetail")}</span>
+          <span>Save vs retail</span>
           <strong className="font-serif text-[18px] font-semibold">{formatRupees(savedPerPack)} / {it.packKg}kg</strong>
         </div>
 
@@ -85,7 +83,7 @@ export function HeroPriceExplorer({ items }: { items: HeroVariety[] }) {
           href={`/browse?variety=${it.variety}`}
           className="inline-flex items-center gap-1 mt-3.5 text-[13px] font-medium text-terra hover:underline"
         >
-          {t("seeVariety", { variety: tLabels(`variety.${it.variety}`), farmer: it.farmerName.split(/\s+/)[0] })}
+          See {VARIETY_LABEL[it.variety]} from {it.farmerName.split(/\s+/)[0]} →
         </Link>
       </div>
     </div>

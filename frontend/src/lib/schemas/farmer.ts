@@ -14,6 +14,7 @@ export const farmerEnrollInputSchema = z.object({
     name: z.string().min(2).max(80),
     district: z.string().min(2).max(80),
     state: z.string().min(2).max(80),
+    pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
     head_name: z.string().min(2).max(80),
     head_phone: phoneSchema,
   }).optional(),

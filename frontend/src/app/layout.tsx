@@ -2,9 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque } from "next/font/google";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
-import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getMessages } from 'next-intl/server';
 import { Providers } from "@/components/providers/Providers";
+import { GoogleTranslate } from "@/components/layout/GoogleTranslate";
 import "./globals.css";
 
 // Bricolage Grotesque + Geist + Geist Mono — contemporary "warm but wonky"
@@ -22,7 +21,7 @@ const display = Bricolage_Grotesque({
 export const metadata: Metadata = {
   title: "Grainline — Rice, direct from the farmer",
   description:
-    "Direct-trade rice from named farmers in Telangana villages. Mill date you can see, farmers you can call by name, fair prices for both sides.",
+    "Direct-trade rice from named farmers in villages across India. Mill date you can see, farmers you can call by name, fair prices for both sides.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
 };
 
@@ -33,19 +32,17 @@ export const viewport: Viewport = {
   themeColor: "#2d4a2b",
 };
 
-export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const locale = await getLocale();
-  const messages = await getMessages();
-
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html
-      lang={locale}
+      lang="en"
       className={`${display.variable} ${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body>
-        <NextIntlClientProvider locale={locale} messages={messages}>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
+        <Providers>
+          {children}
+        </Providers>
+        <GoogleTranslate />
       </body>
     </html>
   );

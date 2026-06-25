@@ -1,27 +1,27 @@
 import type { Order, OrderStatus } from "@/lib/api/types";
 import { formatDate } from "@/lib/format";
-import { useTranslations } from "next-intl";
+import { ORDER_STATUS_LABEL } from "@/lib/labels";
 
 const STEPS: OrderStatus[] = [
   "placed", "confirmed", "milling", "ready", "picked_up", "in_transit", "delivered",
 ];
 
+const STATUS_NOTE: Record<string, string> = {
+  cancelled: "Your order has been cancelled. If you were charged, a refund will be processed within 5–7 business days.",
+  disputed: "Your order is under review. Our team will contact you within 24 hours.",
+};
+
 /** Order progress. Horizontal on desktop, vertical on mobile. Matches the
  *  placed→delivered flow; completed=paddy, current=terra, future=muted. */
 export function StatusTimeline({ order }: { order: Order }) {
-  const t = useTranslations("statusTimeline");
-  const tLabels = useTranslations("labels");
-
   if (order.status === "cancelled" || order.status === "disputed") {
     return (
       <div className="border border-line rounded-card-lg p-5 bg-cream">
         <span className="inline-flex items-center px-2.5 py-1.5 rounded-[3px] text-[11px] tracking-[0.08em] uppercase font-semibold bg-terra text-white">
-          {tLabels(`orderStatus.${order.status}`)}
+          {ORDER_STATUS_LABEL[order.status]}
         </span>
         <p className="text-[13px] text-ink-soft mt-3">
-          {order.status === "cancelled"
-            ? t("cancelledNote")
-            : t("disputedNote")}
+          {STATUS_NOTE[order.status]}
         </p>
       </div>
     );
@@ -57,7 +57,7 @@ export function StatusTimeline({ order }: { order: Order }) {
               )}
             </div>
             <div className="pb-4 sm:pb-0">
-              <div className={`text-[12px] ${textCls}`}>{tLabels(`orderStatus.${step}`)}</div>
+              <div className={`text-[12px] ${textCls}`}>{ORDER_STATUS_LABEL[step]}</div>
               {at && <div className="text-[11px] text-muted mt-0.5">{formatDate(at)}</div>}
             </div>
           </li>

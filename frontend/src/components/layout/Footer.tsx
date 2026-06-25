@@ -1,12 +1,9 @@
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 
 /**
  * 4-column footer matching DESIGN.html footer.
  */
 export function Footer() {
-  const t = useTranslations("footer");
-
   return (
     <footer className="mt-[60px] border-t border-line py-10 pb-[60px] grid grid-cols-1 md:grid-cols-[2fr_1fr_1fr_1fr] gap-10">
       <div>
@@ -14,31 +11,31 @@ export function Footer() {
           Grainline
         </h5>
         <p className="text-[14px] text-ink-soft leading-[1.6] max-w-[36ch] mt-2">
-          {t("tagline")}
+          Direct-trade rice from named farmers in villages across India. Fair prices, both ways.
         </p>
       </div>
       <FooterCol
-        heading={t("buy")}
+        heading="Buy"
         links={[
-          { label: t("allRice"),      href: "/browse" },
-          { label: t("byVillage"),    href: "/villages" },
-          { label: t("byVariety"),    href: "/browse" },
+          { label: "All Rice",      href: "/browse" },
+          { label: "By Village",    href: "/villages" },
+          { label: "By Variety",    href: "/browse" },
         ]}
       />
       <FooterCol
-        heading={t("sell")}
+        heading="Sell"
         links={[
-          { label: t("enrollFarm"),   href: "/sell/enroll" },
-          { label: t("farmerDashboard"),   href: "/farmer-app" },
-          { label: t("pricing"),            href: "/how-it-works" },
+          { label: "Enroll your farm",    href: "/sell/enroll" },
+          { label: "Farmer dashboard",    href: "/farmer-app" },
+          { label: "How pricing works",   href: "/how-it-works" },
         ]}
       />
       <FooterCol
-        heading={t("about")}
+        heading="About"
         links={[
-          { label: t("howItWorks"),  href: "/how-it-works" },
-          { label: t("qualityPromise"), href: "/how-it-works" },
-          { label: t("contact"),       href: "/how-it-works" },
+          { label: "How it works",    href: "/how-it-works" },
+          { label: "Quality promise", href: "/how-it-works" },
+          { label: "Contact us",      href: "/how-it-works" },
         ]}
       />
     </footer>

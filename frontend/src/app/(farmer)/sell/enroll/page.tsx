@@ -11,7 +11,7 @@ import { farmerEnrollInputSchema } from "@/lib/schemas/farmer";
 import { VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees } from "@/lib/format";
 import type { Village, RiceVariety, RiceType, HarvestSeason, FarmerEnrollRequest, PackSize } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 const STORAGE_KEY = "gl_enroll";
 const TOTAL_STEPS = 5;
@@ -26,6 +26,8 @@ interface EnrollState {
   requestNew: boolean;
   vr_name: string;
   vr_district: string;
+  vr_state: string;
+  vr_pincode: string;
   vr_head_name: string;
   vr_head_phone: string;
   land_acres: string;
@@ -45,7 +47,7 @@ interface EnrollState {
 
 const DEFAULT: EnrollState = {
   step: 1, phone: "", phoneVerified: false, name: "", photo_url: "",
-  village_id: "", requestNew: false, vr_name: "", vr_district: "", vr_head_name: "", vr_head_phone: "",
+  village_id: "", requestNew: false, vr_name: "", vr_district: "", vr_state: "", vr_pincode: "", vr_head_name: "", vr_head_phone: "",
   land_acres: "", story: "", since_year: "",
   upi_id: "", aadhaar_last4: "",
   l_variety: "sona_masuri", l_type: "raw", l_organic: false, l_available_kg: "", l_price_rupees: "",
@@ -103,7 +105,7 @@ export default function EnrollPage() {
     if (s.step === 2) {
       if (s.name.trim().length < 2) { toast.show(t("nameValidation"), "error"); return; }
       if (!s.requestNew && !s.village_id) { toast.show(t("villageValidation"), "error"); return; }
-      if (s.requestNew && (!s.vr_name || !s.vr_district || !s.vr_head_name || !/^[6-9]\d{9}$/.test(s.vr_head_phone))) {
+      if (s.requestNew && (!s.vr_name || !s.vr_district || !s.vr_state || !s.vr_pincode || !s.vr_head_name || !/^[6-9]\d{9}$/.test(s.vr_head_phone))) {
         toast.show(t("newVillageValidation"), "error"); return;
       }
     }
@@ -130,7 +132,7 @@ export default function EnrollPage() {
       photo_url: s.photo_url || undefined,
       village_id: s.requestNew ? undefined : s.village_id,
       village_request: s.requestNew
-        ? { name: s.vr_name, district: s.vr_district, state: "Telangana", head_name: s.vr_head_name, head_phone: `+91${s.vr_head_phone}` }
+        ? { name: s.vr_name, district: s.vr_district, state: s.vr_state, pincode: s.vr_pincode, head_name: s.vr_head_name, head_phone: `+91${s.vr_head_phone}` }
         : undefined,
       land_acres: s.land_acres ? Number(s.land_acres) : undefined,
       story: s.story || undefined,
@@ -231,9 +233,15 @@ export default function EnrollPage() {
                 ) : (
                   <div className="space-y-3 p-3.5 border border-dashed border-terra rounded-card">
                     <Text label={t("newVillageName")} value={s.vr_name} onChange={(v) => set({ vr_name: v })} />
-                    <Text label={t("district")} value={s.vr_district} onChange={(v) => set({ vr_district: v })} />
-                    <Text label={t("villageHeadName")} value={s.vr_head_name} onChange={(v) => set({ vr_head_name: v })} />
-                    <Text label={t("villageHeadPhone")} value={s.vr_head_phone} onChange={(v) => set({ vr_head_phone: v.replace(/\D/g, "").slice(0, 10) })} inputMode="numeric" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <Text label={t("state")} value={s.vr_state} onChange={(v) => set({ vr_state: v })} placeholder="e.g. Maharashtra" />
+                      <Text label={t("district")} value={s.vr_district} onChange={(v) => set({ vr_district: v })} placeholder="Siddipet" />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <Text label={t("pincode")} value={s.vr_pincode} onChange={(v) => set({ vr_pincode: v.replace(/\D/g, "").slice(0, 6) })} placeholder="502103" inputMode="numeric" />
+                      <Text label={t("villageHeadName")} value={s.vr_head_name} onChange={(v) => set({ vr_head_name: v })} placeholder="Anji Reddy" />
+                    </div>
+                    <Text label={t("villageHeadPhone")} value={s.vr_head_phone} onChange={(v) => set({ vr_head_phone: v.replace(/\D/g, "").slice(0, 10) })} placeholder="9848012345" inputMode="numeric" />
                   </div>
                 )}
                 <button type="button" onClick={() => set({ requestNew: !s.requestNew })} className="text-[13px] text-terra font-medium mt-2 hover:underline">

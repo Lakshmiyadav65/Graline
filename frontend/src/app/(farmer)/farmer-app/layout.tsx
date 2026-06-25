@@ -7,7 +7,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { RequireRole } from "@/components/auth/RequireRole";
 import { useSession } from "@/lib/auth/session-context";
 import { LanguageSelector } from "@/components/layout/LanguageSelector";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function initials(name: string) {
   return name.split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");

@@ -4,7 +4,7 @@ import { PageShell } from "@/components/layout/PageShell";
 import { formatRupees } from "@/lib/format";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 const STATUS_TONE: Record<string, PillTone> = {
   placed: "pending",

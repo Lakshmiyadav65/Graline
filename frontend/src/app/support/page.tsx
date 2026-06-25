@@ -1,6 +1,6 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { Eyebrow } from "@/components/ui/Eyebrow";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 export const dynamic = "force-dynamic";
 

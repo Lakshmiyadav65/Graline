@@ -1,7 +1,7 @@
 import { PageShell } from "@/components/layout/PageShell";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 export async function generateMetadata() {
   const t = await getTranslations("sell");

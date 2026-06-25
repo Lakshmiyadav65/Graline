@@ -3,7 +3,7 @@ import { farmerService } from "@/services/farmer.service";
 import { createClient } from "@/server/supabase/server";
 import { formatRupees } from "@/lib/format";
 import { Pill, type PillTone } from "@/components/ui/Pill";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 const PAYOUT_TONE: Record<string, PillTone> = {
   paid: "paddy", pending: "pending", processing: "confirmed", failed: "terra",

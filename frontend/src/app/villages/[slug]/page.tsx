@@ -4,7 +4,6 @@ import { PageShell } from "@/components/layout/PageShell";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { FarmerCard } from "@/components/farmer/FarmerCard";
 import { api } from "@/lib/api/client";
-import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
@@ -19,9 +18,6 @@ export default async function VillageDetailPage({ params }: { params: { slug: st
   if (!res.ok) notFound();
   const v = res.data;
 
-  const t = await getTranslations("villages");
-  const tEnroll = await getTranslations("enroll");
-
   return (
     <PageShell>
       {/* Hero */}
@@ -31,7 +27,7 @@ export default async function VillageDetailPage({ params }: { params: { slug: st
           style={{ background: "linear-gradient(135deg, var(--paddy) 0%, var(--paddy-soft) 100%)" }}
         >
           <span className="font-mono text-[12px] tracking-[0.15em] uppercase opacity-70">
-            {v.district} {tEnroll("district")} · {v.state}
+            {v.district} District · {v.state}
           </span>
           <h1
             className="font-serif font-normal leading-[1.05] tracking-[-0.02em] mt-3 mb-4"
@@ -41,20 +37,18 @@ export default async function VillageDetailPage({ params }: { params: { slug: st
           </h1>
           {v.story && <p className="text-[16px] leading-[1.6] opacity-90 max-w-[52ch]">{v.story}</p>}
           <div className="flex gap-8 mt-8">
-            <Stat n={v.farmer_count} label={t("farmers").toUpperCase()} />
-            <Stat n={v.variety_count} label={t("varieties").toUpperCase()} />
-            <Stat n={v.listings.length} label={t("listings").toUpperCase()} />
+            <Stat n={v.farmer_count} label="FARMERS" />
+            <Stat n={v.variety_count} label="VARIETIES" />
+            <Stat n={v.listings.length} label="LISTINGS" />
           </div>
         </div>
 
         {/* Listings */}
         <h2 className="font-serif text-[28px] font-normal mb-6">
-          {t.rich("riceFrom", {
-            village: () => <em className="text-paddy">{v.name}</em>
-          })}
+          Rice from <em className="text-paddy">{v.name}</em>
         </h2>
         {v.listings.length === 0 ? (
-          <p className="text-muted text-[14px] mb-12">{t("noListings")}</p>
+          <p className="text-muted text-[14px] mb-12">No active listings from this village right now.</p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-14">
             {v.listings.map((l) => (
@@ -64,7 +58,7 @@ export default async function VillageDetailPage({ params }: { params: { slug: st
         )}
 
         {/* Farmers */}
-        <h2 className="font-serif text-[28px] font-normal mb-6">{t("meetFarmers")}</h2>
+        <h2 className="font-serif text-[28px] font-normal mb-6">Meet the farmers</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {v.farmers.map((f) => (
             <FarmerCard key={f.id} farmer={f} />

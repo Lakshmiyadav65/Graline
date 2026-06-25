@@ -4,7 +4,7 @@ import { createClient } from "@/server/supabase/server";
 import { formatRupees, formatKg } from "@/lib/format";
 import { Pill, type PillTone } from "@/components/ui/Pill";
 import type { ListingStatus, RiceVariety } from "@/lib/api/types";
-import { getTranslations } from "next-intl/server";
+import { getTranslations } from "@/lib/translations";
 
 const STATUS_TONE: Record<ListingStatus, PillTone> = {
   active: "paddy", draft: "neutral", paused: "pending", out_of_stock: "terra", archived: "neutral",

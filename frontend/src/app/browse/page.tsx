@@ -7,7 +7,6 @@ import { FilterBar } from "@/components/listing/FilterBar";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { api } from "@/lib/api/client";
 import type { ListingFilters, RiceVariety } from "@/lib/api/types";
-import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Browse rice — Grainline" };
@@ -15,8 +14,6 @@ export const metadata: Metadata = { title: "Browse rice — Grainline" };
 type SP = Record<string, string | undefined>;
 
 export default async function BrowsePage({ searchParams }: { searchParams: SP }) {
-  const t = await getTranslations("browse");
-
   const filters: ListingFilters = {
     variety: searchParams.variety as RiceVariety | undefined,
     organic: searchParams.organic === "true" ? true : undefined,
@@ -31,14 +28,12 @@ export default async function BrowsePage({ searchParams }: { searchParams: SP })
   return (
     <PageShell>
       <section className="py-12">
-        <Eyebrow>{t("allRiceTotal", { total })}</Eyebrow>
+        <Eyebrow>{total} varieties of rice, direct from India&apos;s farms</Eyebrow>
         <h1
           className="font-serif font-normal leading-[1.05] tracking-[-0.02em] mt-3.5 mb-8"
           style={{ fontSize: "clamp(28px, 4vw, 48px)" }}
         >
-          {t.rich("title", {
-            byVariety: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
+          Browse rice <em className="text-paddy">by variety</em>
         </h1>
 
         <Suspense fallback={<div className="h-24" />}>
@@ -47,13 +42,13 @@ export default async function BrowsePage({ searchParams }: { searchParams: SP })
 
         {listings.length === 0 ? (
           <div className="text-center py-20 border border-dashed border-line rounded-card-lg">
-            <p className="font-serif text-[24px] mb-2">{t("noMatches")}</p>
-            <p className="text-muted text-[14px] mb-6">{t("noMatchesSub")}</p>
+            <p className="font-serif text-[24px] mb-2">No listings match</p>
+            <p className="text-muted text-[14px] mb-6">Try adjusting your filters or clear them to see all rice.</p>
             <Link
               href="/browse"
               className="inline-flex items-center gap-2 px-5 py-3 bg-ink text-paper rounded-full text-[13px] font-medium hover:bg-paddy transition-all"
             >
-              {t("clearFilters")}
+              Clear filters
             </Link>
           </div>
         ) : (

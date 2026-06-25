@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useSession } from "@/lib/auth/session-context";
-import { createClient } from "@/server/supabase/client";
-import { LOCALE_TO_LANGUAGE } from "@/lib/i18n";
+import { applyGoogleTranslate } from "@/components/layout/GoogleTranslate";
 
 const LANGUAGES = [
-  { code: "en", label: "English", nativeLabel: "English" },
-  { code: "te", label: "Telugu", nativeLabel: "తెలుగు" },
-  { code: "hi", label: "Hindi", nativeLabel: "हिन्दी" },
-  { code: "ta", label: "Tamil", nativeLabel: "தமிழ்" },
+  { code: "en",  label: "English",    nativeLabel: "English" },
+  { code: "te",  label: "Telugu",     nativeLabel: "తెలుగు" },
+  { code: "hi",  label: "Hindi",      nativeLabel: "हिन्दी" },
+  { code: "ta",  label: "Tamil",      nativeLabel: "தமிழ்" },
+  { code: "kn",  label: "Kannada",    nativeLabel: "ಕನ್ನಡ" },
+  { code: "ml",  label: "Malayalam",  nativeLabel: "മലയാളം" },
+  { code: "mr",  label: "Marathi",    nativeLabel: "मराठी" },
+  { code: "bn",  label: "Bengali",    nativeLabel: "বাংলা" },
+  { code: "gu",  label: "Gujarati",   nativeLabel: "ગુજરાતી" },
 ];
 
 interface LanguageSelectorProps {
@@ -17,20 +20,17 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) {
-  const { user, refresh } = useSession();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const [currentLocale, setCurrentLocale] = useState("en");
-  const supabase = createClient();
+  const [currentLang, setCurrentLang] = useState("en");
 
+  // Restore saved language from localStorage on mount
   useEffect(() => {
-    const locale = document.cookie
-      .split("; ")
-      .find((row) => row.startsWith("NEXT_LOCALE="))
-      ?.split("=")[1] || "en";
-    setCurrentLocale(locale);
+    const saved = localStorage.getItem("grainline_lang") || "en";
+    setCurrentLang(saved);
   }, []);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -41,24 +41,14 @@ export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLanguageChange = async (localeCode: string) => {
+  const handleLanguageChange = (langCode: string) => {
     setIsOpen(false);
-    document.cookie = `NEXT_LOCALE=${localeCode}; path=/; max-age=31536000`;
-    localStorage.setItem("grainline_lang", localeCode);
-    setCurrentLocale(localeCode);
-
-    if (user) {
-      const languageName = LOCALE_TO_LANGUAGE[localeCode as keyof typeof LOCALE_TO_LANGUAGE] || "English";
-      await supabase
-        .from("profiles")
-        .update({ preferred_language: languageName })
-        .eq("id", user.id);
-      await refresh();
-    }
-    window.location.reload();
+    setCurrentLang(langCode);
+    localStorage.setItem("grainline_lang", langCode);
+    applyGoogleTranslate(langCode);
   };
 
-  const selectedLang = LANGUAGES.find((l) => l.code === currentLocale) || LANGUAGES[0];
+  const selectedLang = LANGUAGES.find((l) => l.code === currentLang) || LANGUAGES[0];
 
   if (variant === "dashboard") {
     return (
@@ -75,17 +65,18 @@ export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) 
         </button>
 
         {isOpen && (
-          <div className="absolute right-0 mt-1 w-40 bg-cream border border-line rounded-lg shadow-soft py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+          <div className="absolute right-0 mt-1 w-44 bg-cream border border-line rounded-lg shadow-soft py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
             {LANGUAGES.map((lang) => (
               <button
                 key={lang.code}
                 type="button"
                 onClick={() => handleLanguageChange(lang.code)}
                 className={`w-full text-left px-4 py-2 text-[13px] hover:bg-paper-2 transition-colors ${
-                  currentLocale === lang.code ? "text-paddy font-semibold" : "text-ink-soft"
+                  currentLang === lang.code ? "text-paddy font-semibold" : "text-ink-soft"
                 }`}
               >
                 {lang.nativeLabel}
+                {lang.code !== "en" && <span className="text-muted text-[11px] ml-1">({lang.label})</span>}
               </button>
             ))}
           </div>
@@ -108,17 +99,18 @@ export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) 
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-40 bg-cream border border-line rounded-card shadow-soft py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="absolute right-0 mt-2 w-44 bg-cream border border-line rounded-card shadow-soft py-1 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
           {LANGUAGES.map((lang) => (
             <button
               key={lang.code}
               type="button"
               onClick={() => handleLanguageChange(lang.code)}
               className={`w-full text-left px-4 py-2 text-[13px] hover:bg-paper-2 transition-colors ${
-                currentLocale === lang.code ? "text-paddy font-semibold" : "text-ink-soft"
+                currentLang === lang.code ? "text-paddy font-semibold" : "text-ink-soft"
               }`}
             >
-              {lang.nativeLabel} ({lang.label})
+              {lang.nativeLabel}
+              {lang.code !== "en" && <span className="text-muted text-[11px] ml-1">({lang.label})</span>}
             </button>
           ))}
         </div>

@@ -342,6 +342,7 @@ export interface FarmerEnrollRequest {
     name: string;
     district: string;
     state: string;
+    pincode: string;
     head_name: string;
     head_phone: string;
   };

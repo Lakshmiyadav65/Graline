@@ -8,7 +8,7 @@ import { Pill } from "@/components/ui/Pill";
 import { formatRupees, formatDate } from "@/lib/format";
 import { orderStatusTone } from "@/lib/labels";
 import type { FarmerOrderRow, OrderStatus } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 export default function FarmerOrdersPage() {
   const toast = useToast();

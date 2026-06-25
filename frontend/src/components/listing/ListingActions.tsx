@@ -7,14 +7,10 @@ import { PackPicker } from "./PackPicker";
 import { SampleBanner } from "./SampleBanner";
 import type { Listing } from "@/lib/api/types";
 import { formatRupees } from "@/lib/format";
-import { useTranslations } from "next-intl";
+import { VARIETY_LABEL } from "@/lib/labels";
 
 /** Interactive island on the listing detail page: pack picker + add-to-cart + sample. */
 export function ListingActions({ listing }: { listing: Listing }) {
-  const t = useTranslations("listingActions");
-  const tLabels = useTranslations("labels");
-  const tCard = useTranslations("listingCard");
-
   const defaultPack = listing.pack_sizes.find((p) => p.kg === 10) ?? listing.pack_sizes[0];
   const [packKg, setPackKg] = useState(defaultPack.kg);
   const pack = listing.pack_sizes.find((p) => p.kg === packKg) ?? listing.pack_sizes[0];
@@ -26,7 +22,7 @@ export function ListingActions({ listing }: { listing: Listing }) {
 
   const varietyLabel = listing.variety === "other" && listing.variety_other
     ? listing.variety_other
-    : tLabels(`variety.${listing.variety}`);
+    : VARIETY_LABEL[listing.variety];
 
   function addToCart() {
     addItem({
@@ -43,7 +39,7 @@ export function ListingActions({ listing }: { listing: Listing }) {
       retailPaise: listing.retail_paise,
       photoUrl: listing.photos[0] ?? null,
     });
-    toast.show(t("addedToCart", { kg: pack.kg, variety: varietyLabel }), "success");
+    toast.show(`${pack.kg}kg ${varietyLabel} added to cart`, "success");
   }
 
   return (
@@ -57,15 +53,15 @@ export function ListingActions({ listing }: { listing: Listing }) {
           disabled={soldOut}
           className="flex-1 px-5 py-4 rounded-card border border-paddy bg-paddy text-cream font-semibold text-[14px] tracking-[0.04em] uppercase transition-all hover:bg-paddy-2 hover:border-paddy-2 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink"
         >
-          {soldOut ? tCard("outOfStock") : t("addToCart", { price: formatRupees(lineTotal) })}
+          {soldOut ? "Out of stock" : `Add to cart · ${formatRupees(lineTotal)}`}
         </button>
         <button
           type="button"
           disabled
-          title={t("subsComingSoon")}
+          title="Subscriptions coming soon"
           className="flex-1 px-5 py-4 rounded-card border border-ink bg-transparent text-ink font-semibold text-[14px] tracking-[0.04em] uppercase opacity-40 cursor-not-allowed"
         >
-          {t("subscribeMonthly")}
+          Subscribe monthly
         </button>
       </div>
 

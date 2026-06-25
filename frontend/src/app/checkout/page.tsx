@@ -14,7 +14,7 @@ import { addressSchema } from "@/lib/schemas/common";
 import { deliveryFeePaise, codFeePaise, commissionPaise } from "@/lib/pricing";
 import { formatRupees, formatDate, getNextSaturday } from "@/lib/format";
 import type { FulfillmentType, Address } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function CheckoutInner() {
   const router = useRouter();

@@ -8,7 +8,7 @@ import { VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees } from "@/lib/format";
 import { MultipleImageUpload } from "@/components/farmer/MultipleImageUpload";
 import type { RiceVariety, RiceType, HarvestSeason, PackSize, ListingInputDTO } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 import Link from "next/link";
 import { useRouter as useNextRouter } from "next/navigation";
 

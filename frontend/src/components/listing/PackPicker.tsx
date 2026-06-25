@@ -2,7 +2,6 @@
 
 import type { PackSize } from "@/lib/api/types";
 import { formatRupees } from "@/lib/format";
-import { useTranslations } from "next-intl";
 
 interface PackPickerProps {
   packs: PackSize[];
@@ -12,12 +11,10 @@ interface PackPickerProps {
 
 /** 4-up pack-size grid. Selected = ink fill. Matches DESIGN.html .packs/.pack. */
 export function PackPicker({ packs, selected, onSelect }: PackPickerProps) {
-  const t = useTranslations("packPicker");
-
   return (
     <div className="mt-2">
       <label className="text-[11px] tracking-[0.15em] uppercase text-muted font-semibold">
-        {t("label")}
+        Choose pack size
       </label>
       <div className="grid grid-cols-4 gap-2.5 mt-2.5 mb-[22px]">
         {packs.map((p) => {

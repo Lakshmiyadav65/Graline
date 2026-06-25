@@ -6,7 +6,7 @@ import { useToast } from "@/components/ui/Toast";
 import { api } from "@/lib/api/client";
 import type { Address } from "@/lib/api/types";
 import { getLocaleFromLanguage } from "@/lib/i18n";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 interface ProfileFormProps {
   initialProfile: {

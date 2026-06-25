@@ -7,15 +7,12 @@ import { VillageCard } from "@/components/village/VillageCard";
 import { HeroPriceExplorer, type HeroVariety } from "@/components/home/HeroPriceExplorer";
 import { api } from "@/lib/api/client";
 import type { RiceVariety } from "@/lib/api/types";
-import { getTranslations } from "next-intl/server";
 
 export const dynamic = "force-dynamic";
 
 const HERO_VARIETIES: RiceVariety[] = ["sona_masuri", "bpt_5204", "basmati", "red_rice"];
 
 export default async function HomePage() {
-  const t = await getTranslations("home");
-
   const [featuredRes, villagesRes, mandiRes, ...heroListingRes] = await Promise.all([
     api.listings.featured(3),
     api.villages.list(),
@@ -37,11 +34,11 @@ export default async function HomePage() {
       : null;
   }).filter((x): x is HeroVariety => x !== null);
 
-  const stepsKeys = [
-    { n: t("step1Num"), h: t("step1Title"), p: t("step1Desc") },
-    { n: t("step2Num"), h: t("step2Title"), p: t("step2Desc") },
-    { n: t("step3Num"), h: t("step3Title"), p: t("step3Desc") },
-    { n: t("step4Num"), h: t("step4Title"), p: t("step4Desc") },
+  const steps = [
+    { n: "01", h: "Farmer lists", p: "A verified farmer near you lists their freshly milled rice with a fair price and mill date." },
+    { n: "02", h: "You order", p: "Browse by variety, village, or farmer name. Order by Tuesday 9pm IST." },
+    { n: "03", h: "We mill & pack", p: "Rice is milled to order on Wednesday and packed fresh for your delivery." },
+    { n: "04", h: "Delivered Saturday", p: "Hand-packed and delivered to your door every Saturday — no exceptions." },
   ];
 
   return (
@@ -50,38 +47,35 @@ export default async function HomePage() {
       <section className="py-10 sm:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-[1.2fr_0.9fr] gap-12 lg:gap-[60px] items-end">
           <div>
-            <Eyebrow>{t("directFrom", { count: villageTotal })}</Eyebrow>
+            <Eyebrow>Direct from {villageTotal} villages across India</Eyebrow>
             <h1
               className="font-serif font-normal mt-4 mb-5 leading-[0.98] tracking-[-0.025em] max-w-[14ch]"
               style={{ fontSize: "clamp(40px, 9vw, 96px)", fontVariationSettings: '"opsz" 144' }}
             >
-              {t.rich("title", {
-                name: (chunks) => <em className="text-terra font-medium">{chunks}</em>,
-                place: (chunks) => <span className="gold-underline">{chunks}</span>
-              })}
+              Rice with <em className="text-terra font-medium">a name</em> and <span className="gold-underline">a place</span>
             </h1>
             <p className="text-[18px] leading-[1.55] text-ink-soft max-w-[52ch] mb-8">
-              {t("description")}
+              Direct-trade rice from named farmers in villages across India. Mill date you can see, farmers you can call by name, fair prices for both sides.
             </p>
             <div className="flex gap-3 flex-wrap">
               <Link
                 href="/browse"
                 className="inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full bg-ink text-paper text-[13px] font-medium hover:bg-paddy hover:border-paddy transition-all"
               >
-                {t("browseRice")}
+                Browse rice
               </Link>
               <Link
                 href="/sell"
                 className="inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full text-[13px] font-medium hover:bg-ink hover:text-paper transition-all"
               >
-                {t("imFarmer")}
+                I&apos;m a farmer
               </Link>
             </div>
 
             <div className="mt-12 border-t border-line pt-6 grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6">
-              <Stat num={<em className="text-terra not-italic">147</em>} label={t("farmersEnrolled")} />
-              <Stat num={String(villageTotal)} label={t("villagesNetwork")} />
-              <Stat num={<><em className="text-terra not-italic">{t("extraPerKg")}</em></>} label={t("avgExtra")} />
+              <Stat num={<em className="text-terra not-italic">147</em>} label="Farmers enrolled" />
+              <Stat num={String(villageTotal)} label="Villages in network" />
+              <Stat num={<><em className="text-terra not-italic">₹8–14</em></>} label="Extra per kg for farmers" />
             </div>
           </div>
 
@@ -92,11 +86,9 @@ export default async function HomePage() {
       {/* Featured listings */}
       <section className="py-16 border-t border-line">
         <SectionHead
-          title={t.rich("seasonHarvest", {
-            harvest: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
-          sub={t("seasonSub")}
-          cta={{ label: t("viewAllRice"), href: "/browse" }}
+          title={<>This season&apos;s <em className="text-paddy">harvest</em></>}
+          sub="Freshly milled rice, listed by the farmer who grew it."
+          cta={{ label: "View all rice", href: "/browse" }}
         />
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {featured.map((l) => (
@@ -108,11 +100,9 @@ export default async function HomePage() {
       {/* Villages */}
       <section className="py-16 border-t border-line">
         <SectionHead
-          title={t.rich("meetVillages", {
-            villages: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
-          sub={t("villagesSub")}
-          cta={{ label: t("allVillages"), href: "/villages" }}
+          title={<>Meet the <em className="text-paddy">villages</em></>}
+          sub="Every village has a story. Every farmer has a name."
+          cta={{ label: "All villages", href: "/villages" }}
         />
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-7">
           {villages.map((v) => (
@@ -124,16 +114,14 @@ export default async function HomePage() {
       {/* How it works */}
       <section className="py-16 border-t border-line">
         <h2 className="font-serif text-[clamp(28px,4vw,48px)] font-normal mb-2">
-          {t.rich("howWorksTitle", {
-            brand: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
+          How <em className="text-paddy">Grainline</em> works
         </h2>
-        <p className="text-muted text-[15px] mb-9">{t("howWorksSub")}</p>
+        <p className="text-muted text-[15px] mb-9">From field to your kitchen in one week, every week.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-line">
-          {stepsKeys.map((s, i) => (
+          {steps.map((s, i) => (
             <div
               key={s.n}
-              className={"p-7 px-6 border-line border-b lg:border-b-0 " + (i < stepsKeys.length - 1 ? "lg:border-r" : "")}
+              className={"p-7 px-6 border-line border-b lg:border-b-0 " + (i < steps.length - 1 ? "lg:border-r" : "")}
             >
               <span className="font-serif text-[14px] text-terra font-semibold tracking-[0.05em] block mb-4">{s.n}</span>
               <h4 className="font-serif text-[22px] font-medium mb-2">{s.h}</h4>
@@ -154,4 +142,3 @@ function Stat({ num, label }: { num: React.ReactNode; label: string }) {
     </div>
   );
 }
-

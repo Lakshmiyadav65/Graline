@@ -1,32 +1,28 @@
 import { Pill } from "@/components/ui/Pill";
-import { orderStatusTone } from "@/lib/labels";
+import { orderStatusTone, ORDER_STATUS_LABEL, VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees, formatDate } from "@/lib/format";
 import type { FarmerOrderRow } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
 
 export function OrderRow({ order }: { order: FarmerOrderRow }) {
-  const t = useTranslations("farmerOrders");
-  const tLabels = useTranslations("labels");
+  const varietyLabel = VARIETY_LABEL[order.variety as keyof typeof VARIETY_LABEL] ?? order.variety;
 
   return (
     <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[90px_1.4fr_1fr_1fr_110px] gap-3 sm:gap-3.5 items-center p-4 border border-line bg-cream rounded-card">
       <div className="font-mono text-[12px] text-muted">#{order.order_number}</div>
       <div className="col-span-2 sm:col-span-1 order-3 sm:order-none">
         <div className="font-serif text-[17px] font-medium">
-          {tLabels(`variety.${order.variety}`)} · {order.pack_kg}kg
+          {varietyLabel} · {order.pack_kg}kg
         </div>
         <div className="text-[13px] text-ink-soft">{order.customer_label}</div>
       </div>
       <div className="hidden sm:block text-[13px] text-ink-soft">
-        {t.rich("pickup", {
-          date: () => <em className="text-terra not-italic font-semibold">{formatDate(order.pickup_date)}</em>
-        })}
+        Pickup: <em className="text-terra not-italic font-semibold">{formatDate(order.pickup_date)}</em>
       </div>
       <div className="hidden sm:block text-[13px] text-ink-soft">
-        {t("earnings")} <strong>{formatRupees(order.earnings_paise)}</strong>
+        Earnings <strong>{formatRupees(order.earnings_paise)}</strong>
       </div>
       <span className="justify-self-end">
-        <Pill tone={orderStatusTone(order.status)}>{tLabels(`orderStatus.${order.status}`)}</Pill>
+        <Pill tone={orderStatusTone(order.status)}>{ORDER_STATUS_LABEL[order.status]}</Pill>
       </span>
     </div>
   );

@@ -10,7 +10,7 @@ import { api } from "@/lib/api/client";
 import { formatRupees } from "@/lib/format";
 import { orderStatusTone } from "@/lib/labels";
 import type { Order } from "@/lib/api/types";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function itemSummary(order: Order, tLabels: any, t: any): string {
   const first = order.items[0];

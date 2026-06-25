@@ -2,35 +2,29 @@ import type { Metadata } from "next";
 import { PageShell } from "@/components/layout/PageShell";
 import { Eyebrow } from "@/components/ui/Eyebrow";
 import { MandiCompareCard } from "@/components/listing/MandiCompareCard";
-import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = { title: "How it works — Grainline" };
 
 export default async function HowItWorksPage() {
-  const t = await getTranslations("howItWorks");
-  const tHome = await getTranslations("home");
-
   const steps = [
-    { n: tHome("step1Num"), h: tHome("step1Title"), p: tHome("step1Desc") },
-    { n: tHome("step2Num"), h: tHome("step2Title"), p: tHome("step2Desc") },
-    { n: tHome("step3Num"), h: tHome("step3Title"), p: tHome("step3Desc") },
-    { n: tHome("step4Num"), h: tHome("step4Title"), p: tHome("step4Desc") },
+    { n: "01", h: "Farmer lists", p: "A verified farmer near you lists their freshly milled rice with a fair price and mill date." },
+    { n: "02", h: "You order", p: "Browse by variety, village, or farmer name. Order by Tuesday 9pm IST." },
+    { n: "03", h: "We mill & pack", p: "Rice is milled to order on Wednesday and packed fresh for your delivery." },
+    { n: "04", h: "Delivered Saturday", p: "Hand-packed and delivered to your door every Saturday — no exceptions." },
   ];
 
   return (
     <PageShell>
       <section className="py-12">
-        <Eyebrow>{t("eyebrow")}</Eyebrow>
+        <Eyebrow>The Grainline model</Eyebrow>
         <h1
           className="font-serif font-normal leading-[1.05] tracking-[-0.02em] mt-3.5 mb-2"
           style={{ fontSize: "clamp(28px, 4vw, 48px)" }}
         >
-          {t.rich("title", {
-            emWeekly: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
+          A <em className="text-paddy">weekly</em> supply chain, end to end
         </h1>
         <p className="text-muted text-[15px] max-w-[60ch] mb-10">
-          {t("sub")}
+          We connect farmers directly with households — no middlemen, no warehousing, no guessing on freshness.
         </p>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 border-t border-line">
@@ -53,16 +47,14 @@ export default async function HowItWorksPage() {
         </div>
 
         <h2 className="font-serif text-[clamp(28px,4vw,40px)] font-normal mt-20 mb-2">
-          {t.rich("mathTitle", {
-            emMath: (chunks) => <em className="text-paddy">{chunks}</em>
-          })}
+          The <em className="text-paddy">math</em> — why you pay less
         </h2>
         <p className="text-muted text-[15px] max-w-[60ch] mb-6">
-          {t("mathSub")}
+          Cutting out the distributor, retailer, and brand margin means more money to the farmer and less from your pocket.
         </p>
         <div className="max-w-[560px]">
           <MandiCompareCard
-            title={t("compareTitle")}
+            title="Price comparison — Sona Masuri, 1kg"
             retailPaise={8500}
             mandiPaise={2200}
             ourPaise={5200}

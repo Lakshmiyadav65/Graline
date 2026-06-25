@@ -480,6 +480,17 @@ export const supabaseApi: Api = {
         total_amount: totalRupees,
         delivery_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days from now
       }).eq('id', orderId);
+
+      // Trigger order email sending asynchronously
+      try {
+        fetch('/api/orders/confirm-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orderId }),
+        }).catch(err => console.error('Asynchronous order email fetch error:', err));
+      } catch (err) {
+        console.error('Failed to trigger order confirmation emails:', err);
+      }
       
       const amount = totalSubtotalPaise + (deliveryFeeRupees + codFeeRupees) * 100;
       return ok({ 
@@ -685,6 +696,7 @@ export const supabaseApi: Api = {
             name: req.village_request.name,
             district: req.village_request.district,
             state: req.village_request.state,
+            pincode: req.village_request.pincode,
             head_name: req.village_request.head_name,
             head_phone: req.village_request.head_phone,
             slug: slug,

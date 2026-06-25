@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useSession } from "@/lib/auth/session-context";
 import { useCartCount } from "@/lib/cart";
 import { LanguageSelector } from "@/components/layout/LanguageSelector";
-import { useTranslations } from "next-intl";
 
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
@@ -18,21 +17,20 @@ export function CustomerNavbar() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const { user, logout } = useSession();
-  const t = useTranslations("navigation");
 
   const cartCount = useCartCount();
 
   const navLinks = [
-    { href: "/", label: t("home") },
-    { href: "/browse", label: t("browseRice") },
-    { href: "/villages", label: t("villages") },
-    { href: "/how-it-works", label: t("howItWorks") },
+    { href: "/", label: "Home" },
+    { href: "/browse", label: "Browse Rice" },
+    { href: "/villages", label: "Villages" },
+    { href: "/how-it-works", label: "How it works" },
   ];
 
   if (user && user.role === "customer") {
     navLinks.push(
-      { href: "/orders", label: t("myOrders") },
-      { href: "/account", label: t("account") }
+      { href: "/orders", label: "My Orders" },
+      { href: "/account", label: "Account" }
     );
   }
 
@@ -70,7 +68,7 @@ export function CustomerNavbar() {
             Grain<em className="text-terra font-medium">line</em>
           </span>
           <span className="hidden md:inline text-[11px] tracking-[0.18em] uppercase text-muted">
-            {t("fieldToKitchen")}
+            Field to Kitchen
           </span>
         </Link>
 
@@ -105,20 +103,16 @@ export function CustomerNavbar() {
             href="/sell"
             className="hidden sm:inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full text-[13px] font-medium text-ink hover:bg-paddy hover:border-paddy hover:text-cream transition-all"
           >
-            {t("sell")}
+            Sell
           </Link>
 
           <Link
             href="/cart"
-            aria-label={
-              cartCount > 0
-                ? `${t("cart")} (${cartCount})`
-                : t("cart")
-            }
+            aria-label={cartCount > 0 ? `Cart (${cartCount})` : "Cart"}
             className="relative inline-flex items-center gap-2 px-3.5 py-2 border border-ink rounded-full bg-ink text-paper text-[13px] font-medium hover:bg-paddy hover:border-paddy transition-all"
           >
             <BagIcon />
-            <span>{t("cart")}</span>
+            <span>Cart</span>
             {cartCount > 0 && (
               <span
                 aria-hidden="true"
@@ -131,13 +125,13 @@ export function CustomerNavbar() {
 
           {/* Account / Sign in */}
           {user ? (
-            <AccountControl user={user} handleSignOut={handleSignOut} roleHome={user.role === "farmer" ? "/farmer-app" : "/account"} t={t} />
+            <AccountControl user={user} handleSignOut={handleSignOut} roleHome={user.role === "farmer" ? "/farmer-app" : "/account"} />
           ) : (
             <Link
               href="/login"
               className="hidden md:inline-flex text-[13px] font-medium text-ink-soft hover:text-ink transition-colors"
             >
-              {t("signIn")}
+              Sign in
             </Link>
           )}
 
@@ -198,14 +192,14 @@ export function CustomerNavbar() {
                 href="/account"
                 className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
               >
-                {t("account")}
+                Account
               </Link>
             ) : (
               <Link
                 href="/login"
                 className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
               >
-                {t("signIn")}
+                Sign in
               </Link>
             )}
           </li>
@@ -214,7 +208,7 @@ export function CustomerNavbar() {
               href="/sell"
               className="block py-3 pl-[18px] text-[15px] font-medium text-ink-soft hover:text-ink transition-colors"
             >
-              {t("sell")}
+              Sell
             </Link>
           </li>
           {user && (
@@ -224,7 +218,7 @@ export function CustomerNavbar() {
                 onClick={handleSignOut}
                 className="block w-full text-left py-3 pl-[18px] text-[15px] font-medium text-terra hover:text-terra-2 transition-colors"
               >
-                {t("signOut")}
+                Sign out
               </button>
             </li>
           )}
@@ -242,7 +236,7 @@ function initials(name: string): string {
     .join("");
 }
 
-function AccountControl({ user, handleSignOut, roleHome, t }: { user: any, handleSignOut: () => void, roleHome: string, t: any }) {
+function AccountControl({ user, handleSignOut, roleHome }: { user: any, handleSignOut: () => void, roleHome: string }) {
   return (
     <details className="relative">
       <summary className="list-none cursor-pointer inline-flex items-center gap-1.5 text-[13px] font-medium text-ink hover:text-paddy transition-colors [&::-webkit-details-marker]:hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-paddy rounded-full">
@@ -261,20 +255,20 @@ function AccountControl({ user, handleSignOut, roleHome, t }: { user: any, handl
           href={roleHome}
           className="block px-4 py-2.5 text-[14px] text-ink-soft hover:bg-paper-2 hover:text-ink transition-colors"
         >
-          {t("account")}
+          Account
         </Link>
         <Link
           href="/support"
           className="block px-4 py-2.5 text-[14px] text-ink-soft hover:bg-paper-2 hover:text-ink transition-colors"
         >
-          {t("helpSupport")}
+          Help & Support
         </Link>
         <button
           type="button"
           onClick={handleSignOut}
           className="block w-full text-left px-4 py-2.5 text-[14px] text-terra hover:bg-paper-2 transition-colors"
         >
-          {t("signOut")}
+          Sign out
         </button>
       </div>
     </details>

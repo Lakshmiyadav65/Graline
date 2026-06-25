@@ -10,6 +10,7 @@ export default function MandiPage() {
   const [rows, setRows] = useState<MandiPriceRow[] | null>(null);
   const [commodity, setCommodity] = useState("");
   const [market, setMarket] = useState("Hyderabad retail (avg)");
+  const [state, setState] = useState("");
   const [priceRupees, setPriceRupees] = useState("");
   const [busy, setBusy] = useState(false);
   const toast = useToast();
@@ -19,12 +20,12 @@ export default function MandiPage() {
   }, []);
 
   async function add() {
-    if (!commodity.trim() || !(Number(priceRupees) > 0)) { toast.show("Enter a commodity and price.", "error"); return; }
+    if (!commodity.trim() || !state.trim() || !(Number(priceRupees) > 0)) { toast.show("Enter a commodity, state and price.", "error"); return; }
     setBusy(true);
     const r = await api.admin.addMandiPrice({
       commodity: commodity.trim(),
       market,
-      state: "Telangana",
+      state: state.trim(),
       modal_price: Math.round(Number(priceRupees) * 100),
       date: new Date().toISOString(),
     });
@@ -43,8 +44,9 @@ export default function MandiPage() {
         (cron in BE-M6); add overrides here.
       </p>
 
-      <div className="border border-line bg-cream rounded-card-lg p-4 mb-8 grid grid-cols-1 sm:grid-cols-[1.4fr_1.4fr_1fr_auto] gap-3 items-end">
+      <div className="border border-line bg-cream rounded-card-lg p-4 mb-8 grid grid-cols-1 sm:grid-cols-[1.2fr_1.2fr_1.2fr_1fr_auto] gap-3 items-end">
         <Field label="Commodity"><input value={commodity} onChange={(e) => setCommodity(e.target.value)} placeholder="retail_sona_masuri" className={inputCls} /></Field>
+        <Field label="State"><input value={state} onChange={(e) => setState(e.target.value)} placeholder="e.g. Karnataka" className={inputCls} /></Field>
         <Field label="Market"><input value={market} onChange={(e) => setMarket(e.target.value)} className={inputCls} /></Field>
         <Field label="Modal ₹/kg"><input value={priceRupees} onChange={(e) => setPriceRupees(e.target.value.replace(/[^\d.]/g, ""))} inputMode="numeric" placeholder="85" className={inputCls} /></Field>
         <button type="button" onClick={add} disabled={busy} className="px-5 py-3 bg-ink text-paper rounded-full text-[13px] font-medium hover:bg-paddy transition-all disabled:opacity-60 whitespace-nowrap">Add</button>

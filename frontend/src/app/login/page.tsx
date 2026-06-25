@@ -8,7 +8,7 @@ import { Eyebrow } from "@/components/ui/Eyebrow";
 import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 import { createClient } from "@/server/supabase/client";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 function LoginInner() {
   const params = useSearchParams();

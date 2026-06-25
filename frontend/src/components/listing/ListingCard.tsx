@@ -1,28 +1,30 @@
 import Link from "next/link";
 import type { Listing } from "@/lib/api/types";
-import { VARIETY_GRADIENT } from "@/lib/labels";
+import { VARIETY_GRADIENT, VARIETY_LABEL } from "@/lib/labels";
 import { formatRupees } from "@/lib/format";
-import { useTranslations } from "next-intl";
 
-function badgeKeyFor(l: Listing): string | null {
+function badgeKeyFor(l: Listing): "organic" | "newHarvest" | "aged" | null {
   if (l.is_organic) return "organic";
   if ((l.harvest_year ?? 0) >= 2025) return "newHarvest";
   if ((l.harvest_year ?? 9999) <= 2023) return "aged";
   return null;
 }
 
+const BADGE_LABEL: Record<string, string> = {
+  organic: "Organic",
+  newHarvest: "New Harvest",
+  aged: "Aged",
+};
+
 /** Listing card. Server or Client Component. Matches DESIGN.html .listing. */
 export function ListingCard({ listing }: { listing: Listing }) {
-  const t = useTranslations("listingCard");
-  const tLabels = useTranslations("labels");
-
   const badgeKey = badgeKeyFor(listing);
   const badgeCls = badgeKey === "organic" ? "bg-paddy" : badgeKey === "newHarvest" ? "bg-terra" : "bg-ink";
   const soldOut = listing.available_kg <= 0 || listing.status === "out_of_stock";
 
   const varietyLabel = listing.variety === "other" && listing.variety_other
     ? listing.variety_other
-    : tLabels(`variety.${listing.variety}`);
+    : VARIETY_LABEL[listing.variety];
 
   return (
     <Link
@@ -41,12 +43,12 @@ export function ListingCard({ listing }: { listing: Listing }) {
         />
         {badgeKey && (
           <span className={`absolute top-3 left-3 ${badgeCls} text-paper text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-[3px] font-medium`}>
-            {t(badgeKey)}
+            {BADGE_LABEL[badgeKey]}
           </span>
         )}
         {soldOut && (
           <span className="absolute top-3 right-3 bg-ink/80 text-paper text-[11px] tracking-[0.08em] uppercase px-2.5 py-1 rounded-[3px] font-medium">
-            {t("soldOut")}
+            Sold out
           </span>
         )}
       </div>
@@ -57,7 +59,7 @@ export function ListingCard({ listing }: { listing: Listing }) {
           {varietyLabel}
         </div>
         <div className="text-[13px] text-muted mt-1.5">
-          {t("by")} <strong className="text-ink-soft font-medium">{listing.farmer.name}</strong> · {listing.farmer.village.name}
+          by <strong className="text-ink-soft font-medium">{listing.farmer.name}</strong> · {listing.farmer.village.name}
         </div>
 
         <div className="flex justify-between items-end mt-3.5 pt-3.5 border-t border-dashed border-line-soft">
@@ -67,14 +69,14 @@ export function ListingCard({ listing }: { listing: Listing }) {
               <span className="font-sans text-[12px] text-muted font-normal ml-0.5">/kg</span>
             </div>
             <div className="text-[11px] text-terra font-medium mt-1">
-              {t("vsRetail", { price: formatRupees(listing.retail_paise) })}
+              vs retail {formatRupees(listing.retail_paise)}/kg
             </div>
           </div>
           <div className="text-[12px] font-medium text-right">
             {soldOut ? (
-              <span className="text-muted">{t("outOfStock")}</span>
+              <span className="text-muted">Out of stock</span>
             ) : (
-              <span className="text-paddy">{t("available", { qty: Math.round(listing.available_kg) })}</span>
+              <span className="text-paddy">{Math.round(listing.available_kg)} kg available</span>
             )}
           </div>
         </div>

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import type { RiceVariety, Village } from "@/lib/api/types";
 import { api } from "@/lib/api/client";
-import { useTranslations } from "next-intl";
+import { VARIETY_LABEL } from "@/lib/labels";
 
 const VARIETY_CHIPS: (RiceVariety | "all")[] = [
   "all", "sona_masuri", "bpt_5204", "basmati", "jeera_samba", "red_rice", "hand_pounded_sona",
@@ -18,13 +18,10 @@ function chipClass(active: boolean) {
 }
 
 export function FilterBar() {
-  const t = useTranslations("filterBar");
-  const tLabels = useTranslations("labels");
-
   const SORTS = [
-    { key: "newest", label: t("sortNewest") },
-    { key: "price_asc", label: t("sortPriceAsc") },
-    { key: "price_desc", label: t("sortPriceDesc") },
+    { key: "newest", label: "Newest" },
+    { key: "price_asc", label: "Price: Low → High" },
+    { key: "price_desc", label: "Price: High → Low" },
   ];
 
   const router = useRouter();
@@ -68,14 +65,14 @@ export function FilterBar() {
             type="text"
             value={searchVal}
             onChange={(e) => setSearchVal(e.target.value)}
-            placeholder={t("searchPlaceholder")}
+            placeholder="Search rice, farmer, or village…"
             className="flex-1 px-4 py-2 border border-line rounded-full bg-paper text-[14px] focus:outline-none focus:border-ink"
           />
           <button
             type="submit"
             className="px-5 py-2 bg-ink text-paper rounded-full text-[13px] font-medium hover:bg-paddy transition-colors"
           >
-            {t("searchBtn")}
+            Search
           </button>
           {params.get("search") && (
             <button
@@ -86,19 +83,19 @@ export function FilterBar() {
               }}
               className="px-4 py-2 border border-line text-muted rounded-full text-[13px] hover:border-ink hover:text-ink transition-colors"
             >
-              {t("clearBtn")}
+              Clear
             </button>
           )}
         </form>
 
         <div className="flex items-center gap-2 self-start md:self-auto">
-          <span className="text-[11px] tracking-[0.12em] uppercase text-muted font-semibold">{t("village")}</span>
+          <span className="text-[11px] tracking-[0.12em] uppercase text-muted font-semibold">Village</span>
           <select
             value={activeVillage}
             onChange={(e) => setParam("village_id", e.target.value === "all" ? null : e.target.value)}
             className="px-4 py-2 border border-line rounded-full bg-paper text-[13px] text-ink-soft focus:outline-none focus:border-ink"
           >
-            <option value="all">{t("allVillages")}</option>
+            <option value="all">All villages</option>
             {villages.map((v) => (
               <option key={v.id} value={v.id}>
                 {v.name} ({v.district})
@@ -116,7 +113,7 @@ export function FilterBar() {
             onClick={() => setParam("variety", v === "all" ? null : v)}
             className={chipClass(activeVariety === v)}
           >
-            {v === "all" ? t("allVarieties") : tLabels(`variety.${v}`)}
+            {v === "all" ? "All varieties" : VARIETY_LABEL[v as RiceVariety]}
           </button>
         ))}
         <button
@@ -124,12 +121,12 @@ export function FilterBar() {
           onClick={() => setParam("organic", organic ? null : "true")}
           className={chipClass(organic)}
         >
-          {t("organicOnly")}
+          Organic only
         </button>
       </div>
 
       <div className="flex gap-2.5 flex-wrap mt-3 items-center">
-        <span className="text-[11px] tracking-[0.12em] uppercase text-muted font-semibold mr-1">{t("sort")}</span>
+        <span className="text-[11px] tracking-[0.12em] uppercase text-muted font-semibold mr-1">Sort</span>
         {SORTS.map((s) => (
           <button
             key={s.key}

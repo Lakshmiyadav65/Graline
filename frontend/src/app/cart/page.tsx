@@ -9,7 +9,7 @@ import { CartLine } from "@/components/cart/CartLine";
 import { useCart, cartSubtotalPaise, cartRetailPaise, cartCount } from "@/lib/cart";
 import { useSession } from "@/lib/auth/session-context";
 import { formatRupees, formatDate, getNextSaturday } from "@/lib/format";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "@/lib/translations";
 
 export default function CartPage() {
   const items = useCart((s) => s.items);
