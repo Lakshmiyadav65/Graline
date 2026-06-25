@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef } from "react";
 import { applyGoogleTranslate } from "@/components/layout/GoogleTranslate";
+import { useSession } from "@/lib/auth/session-context";
+import { createClient } from "@/server/supabase/client";
+import { LOCALE_TO_LANGUAGE } from "@/lib/i18n";
 
 const LANGUAGES = [
   { code: "en",  label: "English",    nativeLabel: "English" },
@@ -20,14 +23,30 @@ interface LanguageSelectorProps {
 }
 
 export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) {
+  const { user, refresh } = useSession();
+  const supabase = createClient();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [currentLang, setCurrentLang] = useState("en");
+  const [isReady, setIsReady] = useState(false);
 
   // Restore saved language from localStorage on mount
   useEffect(() => {
     const saved = localStorage.getItem("grainline_lang") || "en";
     setCurrentLang(saved);
+  }, []);
+
+  // Poll for Google Translate widget initialization
+  useEffect(() => {
+    const checkInterval = setInterval(() => {
+      const selectEl = document.querySelector(".goog-te-combo");
+      if (typeof window !== "undefined" && (window as any).google?.translate && selectEl) {
+        setIsReady(true);
+        clearInterval(checkInterval);
+      }
+    }, 250);
+
+    return () => clearInterval(checkInterval);
   }, []);
 
   // Close dropdown when clicking outside
@@ -41,8 +60,35 @@ export function LanguageSelector({ variant = "navbar" }: LanguageSelectorProps) 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const handleLanguageChange = (langCode: string) => {
+  const handleLanguageChange = async (langCode: string) => {
     setIsOpen(false);
+    
+    // Set cookies to keep server/middleware/Google Translate in sync
+    document.cookie = `NEXT_LOCALE=${langCode}; path=/; max-age=31536000`;
+    
+    // If logged in, update database in background
+    if (user) {
+      const languageName = LOCALE_TO_LANGUAGE[langCode as keyof typeof LOCALE_TO_LANGUAGE] || "English";
+      // Run update in background safely
+      supabase
+        .from("profiles")
+        .update({ preferred_language: languageName })
+        .eq("id", user.id)
+        .then(() => refresh())
+        .catch((err) => console.error("[LanguageSelector] DB sync failed:", err));
+    }
+
+    if (!isReady && langCode !== "en") {
+      // Fallback: set cookies directly and reload if selected before script initialized
+      setCurrentLang(langCode);
+      localStorage.setItem("grainline_lang", langCode);
+      const gtValue = `/en/${langCode}`;
+      document.cookie = `googtrans=${gtValue}; path=/`;
+      document.cookie = `googtrans=${gtValue}; path=/; domain=${location.hostname}`;
+      window.location.reload();
+      return;
+    }
+
     setCurrentLang(langCode);
     localStorage.setItem("grainline_lang", langCode);
     applyGoogleTranslate(langCode);

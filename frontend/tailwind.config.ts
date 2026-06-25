@@ -40,6 +40,15 @@ const config: Config = {
       maxWidth: {
         "app": "1280px",
       },
+      keyframes: {
+        "progress-loading": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(300%)" },
+        },
+      },
+      animation: {
+        "progress-loading": "progress-loading 1.5s infinite ease-in-out",
+      },
     },
   },
   plugins: [],

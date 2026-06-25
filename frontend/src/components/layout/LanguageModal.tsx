@@ -34,6 +34,11 @@ export function LanguageModal() {
 
   const handleSave = async (localeCode: string, isSkip = false) => {
     document.cookie = `NEXT_LOCALE=${localeCode}; path=/; max-age=31536000`;
+    
+    // Set Google Translate cookies and local storage
+    const gtValue = `/en/${localeCode}`;
+    document.cookie = `googtrans=${gtValue}; path=/;`;
+    document.cookie = `googtrans=${gtValue}; path=/; domain=${location.hostname};`;
     localStorage.setItem("grainline_lang", localeCode);
     localStorage.setItem("grainline_lang_chosen", "true");
     

@@ -4,6 +4,7 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import { Providers } from "@/components/providers/Providers";
 import { GoogleTranslate } from "@/components/layout/GoogleTranslate";
+import { TranslationLoader } from "@/components/layout/TranslationLoader";
 import "./globals.css";
 
 // Bricolage Grotesque + Geist + Geist Mono — contemporary "warm but wonky"
@@ -39,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       className={`${display.variable} ${GeistSans.variable} ${GeistMono.variable}`}
     >
       <body>
+        <TranslationLoader />
         <Providers>
           {children}
         </Providers>

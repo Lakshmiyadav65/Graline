@@ -5,6 +5,7 @@ import {
 } from "react";
 import { createClient } from "@/server/supabase/client";
 import { getLocaleFromLanguage } from "@/lib/i18n";
+import { applyGoogleTranslate } from "@/components/layout/GoogleTranslate";
 
 export type Role = "customer" | "farmer" | "admin";
 
@@ -56,13 +57,24 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
       if (prefLang) {
         const localeCode = getLocaleFromLanguage(prefLang);
+        
+        // Sync NEXT_LOCALE cookie to keep server/middleware in alignment
         const currentCookie = document.cookie
           .split("; ")
           .find((row) => row.startsWith("NEXT_LOCALE="))
           ?.split("=")[1];
         if (currentCookie !== localeCode) {
           document.cookie = `NEXT_LOCALE=${localeCode}; path=/; max-age=31536000`;
-          window.location.reload();
+        }
+
+        // Sync with Google Translate state without causing hard page-reload loops
+        const currentSaved = localStorage.getItem("grainline_lang") || "en";
+        if (currentSaved !== localeCode) {
+          localStorage.setItem("grainline_lang", localeCode);
+          const gtValue = `/en/${localeCode}`;
+          document.cookie = `googtrans=${gtValue}; path=/`;
+          document.cookie = `googtrans=${gtValue}; path=/; domain=${location.hostname}`;
+          applyGoogleTranslate(localeCode);
         }
       }
     } else {

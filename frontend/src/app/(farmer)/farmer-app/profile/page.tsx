@@ -115,6 +115,12 @@ export default function FarmerProfilePage() {
       const newLocale = getLocaleFromLanguage(language);
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
 
+      // Update Google Translate localStorage and cookies so translation works on reload
+      localStorage.setItem("grainline_lang", newLocale);
+      const gtValue = `/en/${newLocale}`;
+      document.cookie = `googtrans=${gtValue}; path=/;`;
+      document.cookie = `googtrans=${gtValue}; path=/; domain=${location.hostname};`;
+
       toast.show(t("updatedSuccess"), "success");
       // Refresh router and reload page to apply new translation locale
       router.refresh();

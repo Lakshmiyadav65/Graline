@@ -104,6 +104,12 @@ export function ProfileForm({ initialProfile, googleUser }: ProfileFormProps) {
       // Update cookie
       const newLocale = getLocaleFromLanguage(lang);
       document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
+      
+      // Update Google Translate localStorage and cookies so translation works on reload
+      localStorage.setItem("grainline_lang", newLocale);
+      const gtValue = `/en/${newLocale}`;
+      document.cookie = `googtrans=${gtValue}; path=/;`;
+      document.cookie = `googtrans=${gtValue}; path=/; domain=${location.hostname};`;
 
       toast.show(t("profileUpdated"), "success");
       setProfile({
