@@ -17,40 +17,45 @@ const fail = <T>(code: ApiError["code"], message: string, field?: string): ApiRe
   ({ ok: false, error: { code, message, field } });
 
 // Helper to map DB Listing record to TS Listing interface
-const mapListing = (l: any): Listing => ({
-  id: l.id,
-  variety: (l.variety || l.rice_variety) as RiceVariety,
-  variety_other: l.rice_variety_other || l.variety_other || null,
-  type: (l.type || "raw") as RiceType,
-  is_organic: l.is_organic,
-  organic_certification: l.organic_certification,
-  available_kg: Number(l.stock_kg),
-  price_per_kg: Number(l.price_per_kg),
-  pack_sizes: l.pack_sizes || [],
-  harvest_year: l.harvest_year,
-  harvest_season: l.harvest_season as HarvestSeason | null,
-  is_milled: l.is_milled,
-  milled_on: l.milled_on,
-  photos: l.listing_images?.map((img: any) => img.image_url) || [],
-  description: l.description,
-  status: (l.status || "active") as ListingStatus,
-  created_at: l.created_at,
-  retail_paise: Number(l.retail_paise || (Number(l.price_per_kg) + 3000)),
-  farmer: {
-    id: l.farmers?.id || "f1",
-    name: l.farmers?.profiles?.full_name || "Farmer",
-    photo_url: l.farmers?.photo_url || "",
-    land_acres: l.farmers?.farm_size_acres || null,
-    farming_since_year: l.farmers?.farming_since_year || null,
-    village: l.farmers?.villages ? {
-      id: l.farmers.villages.id,
-      name: l.farmers.villages.name,
-      slug: l.farmers.villages.slug || "",
-      district: l.farmers.villages.district,
-      state: l.farmers.villages.state
-    } : { id: "v1", name: "Village", slug: "village", district: "Dist", state: "State" }
-  }
-});
+const mapListing = (l: any): Listing => {
+  const rawVariety = l.rice_variety || l.variety;
+  const isPredefined = ["sona_masuri", "bpt_5204", "basmati", "jeera_samba", "red_rice", "brown_rice", "hand_pounded_sona"].includes(rawVariety);
+  
+  return {
+    id: l.id,
+    variety: (isPredefined ? rawVariety : "other") as RiceVariety,
+    variety_other: !isPredefined ? rawVariety : null,
+    type: (l.type || "raw") as RiceType,
+    is_organic: l.is_organic,
+    organic_certification: l.organic_certification,
+    available_kg: Number(l.stock_kg),
+    price_per_kg: Number(l.price_per_kg),
+    pack_sizes: l.pack_sizes || [],
+    harvest_year: l.harvest_year,
+    harvest_season: l.harvest_season as HarvestSeason | null,
+    is_milled: l.is_milled,
+    milled_on: l.milled_on,
+    photos: l.listing_images?.map((img: any) => img.image_url) || [],
+    description: l.description,
+    status: (l.status || "active") as ListingStatus,
+    created_at: l.created_at,
+    retail_paise: Number(l.retail_paise || (Number(l.price_per_kg) + 3000)),
+    farmer: {
+      id: l.farmers?.id || "f1",
+      name: l.farmers?.profiles?.full_name || "Farmer",
+      photo_url: l.farmers?.photo_url || "",
+      land_acres: l.farmers?.farm_size_acres || null,
+      farming_since_year: l.farmers?.farming_since_year || null,
+      village: l.farmers?.villages ? {
+        id: l.farmers.villages.id,
+        name: l.farmers.villages.name,
+        slug: l.farmers.villages.slug || "",
+        district: l.farmers.villages.district,
+        state: l.farmers.villages.state
+      } : { id: "v1", name: "Village", slug: "village", district: "Dist", state: "State" }
+    }
+  };
+};
 
 // Helper to restore stock of a cancelled order
 const restoreOrderStockByNumber = async (orderNumber: string) => {
@@ -449,9 +454,8 @@ export const supabaseApi: Api = {
         .select(`
           id,
           rice_variety,
-          rice_variety_other,
           price_per_kg,
-          photos,
+          listing_images (image_url),
           farmers:farmer_id (
             id,
             profiles:profiles!farmers_id_fkey ( full_name ),
@@ -504,7 +508,7 @@ export const supabaseApi: Api = {
               subtotal_paise: subtotalPaise,
               farmer_name: listing.farmers?.profiles?.full_name || "Farmer",
               village_name: listing.farmers?.villages?.name || "Village",
-              photo_url: (listing.photos && listing.photos[0]) || null,
+              photo_url: (listing.listing_images && listing.listing_images[0]?.image_url) || null,
             })
             .eq('id', item.id);
 
@@ -803,13 +807,14 @@ export const supabaseApi: Api = {
       if (farmerErr) return fail("INTERNAL", farmerErr.message);
 
       // 4. Create first listing
+      const dbVariety = req.first_listing.variety === "other" && req.first_listing.variety_other ? req.first_listing.variety_other : req.first_listing.variety;
       const { data: newListing, error: listingErr } = await supabase
         .from('listings')
         .insert({
           farmer_id: userId,
           title: `${req.name}'s Rice`,
           description: req.first_listing.description || "",
-          rice_variety: req.first_listing.variety,
+          rice_variety: dbVariety,
           price_per_kg: req.first_listing.price_per_kg / 100, // DB stores unit price in Rupees
           stock_kg: req.first_listing.available_kg,
           is_active: true,
@@ -983,11 +988,12 @@ export const supabaseApi: Api = {
       const { data: auth } = await supabase.auth.getSession();
       if (!auth.session) return fail("UNAUTHORIZED", "Not signed in");
       
+      const dbVariety = input.variety === "other" && input.variety_other ? input.variety_other : input.variety;
       const insertData = {
         farmer_id: auth.session.user.id,
-        title: input.variety.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
+        title: dbVariety.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
         description: input.description,
-        rice_variety: input.variety,
+        rice_variety: dbVariety,
         price_per_kg: input.price_per_kg / 100, // convert paise to Rupees
         stock_kg: input.available_kg,
         type: input.type,
@@ -1019,8 +1025,9 @@ export const supabaseApi: Api = {
     async updateListing(id, input) {
       const updateData: any = {};
       if (input.variety) {
-        updateData.rice_variety = input.variety;
-        updateData.title = input.variety.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        const dbVariety = input.variety === "other" && input.variety_other ? input.variety_other : input.variety;
+        updateData.rice_variety = dbVariety;
+        updateData.title = dbVariety.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       }
       if (input.description !== undefined) updateData.description = input.description;
       if (input.price_per_kg !== undefined) {
