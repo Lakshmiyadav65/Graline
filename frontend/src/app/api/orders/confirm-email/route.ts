@@ -132,6 +132,11 @@ export async function POST(request: Request) {
     const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@grainline.in';
     const supportPhone = process.env.NEXT_PUBLIC_SUPPORT_PHONE || '+919999999999';
 
+    const subtotal = Number(order.subtotal || 0);
+    const deliveryFee = Number(order.delivery_fee || 0);
+    const codFee = Number(order.cod_fee || 0);
+    const total = Number(order.total_amount || 0);
+
     // 6. Generate Emails HTML
     const customerEmailHtml = generateCustomerOrderEmail({
       orderNumber: order.order_number,
@@ -149,6 +154,10 @@ export async function POST(request: Request) {
       deliveryAddress: formattedAddress,
       supportEmail,
       supportPhone,
+      subtotal,
+      deliveryFee,
+      codFee,
+      total,
     });
 
     const operationsEmailHtml = generateOperationsOrderEmail({
@@ -168,6 +177,10 @@ export async function POST(request: Request) {
       },
       productInfo,
       deliveryAddress: formattedAddress,
+      subtotal,
+      deliveryFee,
+      codFee,
+      total,
     });
 
     // 7. Send Customer Email

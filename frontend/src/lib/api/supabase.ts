@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { getNextSaturday } from "../format";
 import type { 
   Api, ApiResult, ApiError, Role, 
   Listing, ListingFilters, ListingListResponse, 
@@ -16,11 +17,60 @@ const ok = <T>(data: T): ApiResult<T> => ({ ok: true, data });
 const fail = <T>(code: ApiError["code"], message: string, field?: string): ApiResult<T> => 
   ({ ok: false, error: { code, message, field } });
 
+// ─── Unit convention ─────────────────────────────────────────────────────────
+// DB columns:
+//   listings.price_per_kg  → stored in RUPEES (e.g. 80.00 = ₹80/kg)
+//   listings.retail_paise  → stored in PAISE  (e.g. 11000 = ₹110/kg)
+//   orders.total_amount    → stored in RUPEES
+//   orders.subtotal        → stored in RUPEES
+//   orders.delivery_fee    → stored in RUPEES
+//   orders.cod_fee         → stored in RUPEES
+//   order_items.price_per_kg     → stored in RUPEES
+//   order_items.subtotal_paise   → stored in PAISE
+//
+// API/Frontend types:
+//   Listing.price_per_kg   → PAISE  (multiply DB value by 100)
+//   Order.total            → PAISE  (multiply DB value by 100)
+//   Order.subtotal         → PAISE  (multiply DB value by 100)
+//   Order.delivery_fee     → PAISE  (multiply DB value by 100)
+//   Order.cod_fee          → PAISE  (multiply DB value by 100)
+//   OrderItem.price_per_kg_paise → PAISE (multiply DB value by 100)
+//   OrderItem.subtotal_paise     → PAISE (direct from DB)
+// ─────────────────────────────────────────────────────────────────────────────
+
 // Helper to map DB Listing record to TS Listing interface
 const mapListing = (l: any): Listing => {
   const rawVariety = l.rice_variety || l.variety;
   const isPredefined = ["sona_masuri", "bpt_5204", "basmati", "jeera_samba", "red_rice", "brown_rice", "hand_pounded_sona"].includes(rawVariety);
   
+  // DB price_per_kg is in RUPEES → convert to PAISE for frontend
+  const pricePerKgPaise = Math.round(Number(l.price_per_kg) * 100);
+  
+  // retail_paise: DB column is already in PAISE.
+  // Fallback: price + ₹30 margin = price_paise + 3000 paise
+  const retailPaise = l.retail_paise 
+    ? Number(l.retail_paise) 
+    : pricePerKgPaise + 3000;
+
+  // Pack sizes: if stored in DB they come as-is (already in paise), else auto-generate
+  let packSizes = l.pack_sizes || [];
+  if (!packSizes || packSizes.length === 0) {
+    // Auto-generate standard pack sizes based on price
+    packSizes = [1, 5, 10, 25].map(kg => ({
+      kg,
+      price_per_kg_paise: pricePerKgPaise
+    }));
+  } else {
+    // Ensure pack sizes have paise values — if they came as rupees, fix them
+    packSizes = packSizes.map((ps: any) => ({
+      kg: Number(ps.kg),
+      // If stored price is very small (< 200), it's rupees; convert to paise
+      price_per_kg_paise: Number(ps.price_per_kg_paise) < 200 && Number(ps.price_per_kg_paise) > 0
+        ? Math.round(Number(ps.price_per_kg_paise) * 100)
+        : Number(ps.price_per_kg_paise) || pricePerKgPaise
+    }));
+  }
+
   return {
     id: l.id,
     variety: (isPredefined ? rawVariety : "other") as RiceVariety,
@@ -29,8 +79,8 @@ const mapListing = (l: any): Listing => {
     is_organic: l.is_organic,
     organic_certification: l.organic_certification,
     available_kg: Number(l.stock_kg),
-    price_per_kg: Number(l.price_per_kg),
-    pack_sizes: l.pack_sizes || [],
+    price_per_kg: pricePerKgPaise,  // PAISE
+    pack_sizes: packSizes,
     harvest_year: l.harvest_year,
     harvest_season: l.harvest_season as HarvestSeason | null,
     is_milled: l.is_milled,
@@ -39,7 +89,7 @@ const mapListing = (l: any): Listing => {
     description: l.description,
     status: (l.status || "active") as ListingStatus,
     created_at: l.created_at,
-    retail_paise: Number(l.retail_paise || (Number(l.price_per_kg) + 3000)),
+    retail_paise: retailPaise,  // PAISE
     farmer: {
       id: l.farmers?.id || "f1",
       name: l.farmers?.profiles?.full_name || "Farmer",
@@ -56,6 +106,51 @@ const mapListing = (l: any): Listing => {
     }
   };
 };
+
+// Shared order item mapper
+const mapOrderItem = (it: any): OrderItem => {
+  const listing = it.listings;
+  // price_per_kg in DB is RUPEES → convert to PAISE
+  const pricePerKgPaise = Math.round(Number(it.price_per_kg || listing?.price_per_kg || 0) * 100);
+  // subtotal_paise is already in PAISE
+  const subtotalPaise = Number(it.subtotal_paise || 0);
+  
+  return {
+    listing_id: it.listing_id,
+    farmer_id: it.farmer_id || "",
+    variety: (it.variety || listing?.rice_variety || "other") as RiceVariety,
+    varietyName: listing?.rice_variety_other || undefined,
+    variety_other: listing?.rice_variety_other || null,
+    pack_kg: Number(it.pack_kg || 0),
+    qty: Number(it.qty || 0),
+    price_per_kg_paise: pricePerKgPaise,  // PAISE
+    subtotal_paise: subtotalPaise,          // PAISE
+    farmer_name: it.farmer_name || "",
+    village_name: it.village_name || "",
+    photo_url: it.photo_url || null,
+  };
+};
+
+// Shared order mapper — DB money fields are in RUPEES, multiply by 100 for paise
+const mapOrder = (o: any): Order => ({
+  id: o.id,
+  order_number: o.order_number,
+  fulfillment_type: o.fulfillment_type || "home_delivery",
+  delivery_address: o.delivery_address || null,
+  delivery_date: o.delivery_date || o.created_at,
+  // DB stores Rupees → convert to PAISE for frontend
+  subtotal: Math.round(Number(o.subtotal || 0) * 100),
+  delivery_fee: Math.round(Number(o.delivery_fee || 0) * 100),
+  cod_fee: Math.round(Number(o.cod_fee || 0) * 100),
+  total: Math.round(Number(o.total_amount || 0) * 100),
+  commission_amount: Math.round(Number(o.commission_amount || 0) * 100),
+  payment_method: o.payment_method || "cod",
+  payment_status: o.payment_status || "pending",
+  status: (o.status || "placed") as OrderStatus,
+  status_history: o.status_history || [],
+  placed_at: o.created_at,
+  items: (o.order_items || []).map(mapOrderItem),
+});
 
 // Helper to restore stock of a cancelled order
 const restoreOrderStockByNumber = async (orderNumber: string) => {
@@ -253,7 +348,7 @@ export const supabaseApi: Api = {
           id,
           listings ( rice_variety )
         )
-      `);
+      `).eq('status', 'verified');
       if (error) return fail("INTERNAL", error.message);
       
       const villages = (data || []).map((v: any) => {
@@ -390,7 +485,7 @@ export const supabaseApi: Api = {
 
   orders: {
     async create(req) {
-      console.log('[Checkout Flow] Starting checkout process...');
+      console.log('[Checkout Flow] Starting atomic checkout process...');
       // 1. Get session
       const { data: auth } = await supabase.auth.getSession();
       if (!auth.session) {
@@ -399,56 +494,13 @@ export const supabaseApi: Api = {
       }
       
       const userId = auth.session.user.id;
-      console.log(`[Checkout Flow] User ID: ${userId}. Verifying customer record in customers table...`);
-
-      // 2. Ensure customer record exists in customers table
-      const { data: customerExists, error: customerCheckError } = await supabase
-        .from('customers')
-        .select('id')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (customerCheckError) {
-        console.error('[Checkout Flow] Failed to query customers table:', customerCheckError);
-        return fail("INTERNAL", `Customer check failed: ${customerCheckError.message}`);
-      }
-
-      if (!customerExists) {
-        console.log(`[Checkout Flow] Customer record missing. Automatically creating customer linked to profile: ${userId}`);
-        const { error: customerCreateError } = await supabase
-          .from('customers')
-          .insert({ id: userId });
-          
-        if (customerCreateError) {
-          console.error('[Checkout Flow] Failed to create customer record:', customerCreateError);
-          return fail("INTERNAL", `Failed to initialize customer record: ${customerCreateError.message}`);
-        }
-        console.log('[Checkout Flow] Customer record created successfully.');
-      } else {
-        console.log('[Checkout Flow] Customer record exists.');
-      }
-
-      // 3. Call RPC to safely deduct stock and create order items
-      console.log('[Checkout Flow] Calling create_order RPC transaction...');
-      const itemsForRpc = req.items.map(it => ({ listing_id: it.listing_id, quantity_kg: it.pack_kg * it.qty }));
       
-      const { data: orderId, error } = await supabase.rpc('create_order', {
-        p_customer_id: userId,
-        p_shipping_address: JSON.stringify(req.delivery_address),
-        p_items: itemsForRpc
-      });
-      
-      if (error) {
-        console.error('[Checkout Flow] create_order RPC failed:', error);
-        return fail("CONFLICT", error.message);
-      }
-      console.log(`[Checkout Flow] RPC transaction successful. Created order ID: ${orderId}`);
-      
-      // 4. Update extra metadata we added in schema extension
-      const orderNumber = "GL-" + orderId.substring(0, 6).toUpperCase();
-      console.log(`[Checkout Flow] Populating order metadata for order number: ${orderNumber}`);
-      
-      // Fetch details for the listings to denormalize into order_items
+      // 2. Generate a proper order number first
+      const randomPart = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const orderNumber = `GL-${randomPart}`;
+      console.log(`[Checkout Flow] Generated Order Number: ${orderNumber}`);
+
+      // 3. Fetch listing details to prepare atomic transaction input
       const listingIds = req.items.map(it => it.listing_id);
       const { data: listings, error: listingsErr } = await supabase
         .from('listings')
@@ -456,6 +508,7 @@ export const supabaseApi: Api = {
           id,
           rice_variety,
           price_per_kg,
+          retail_paise,
           listing_images (image_url),
           farmers:farmer_id (
             id,
@@ -466,7 +519,7 @@ export const supabaseApi: Api = {
         .in('id', listingIds);
         
       if (listingsErr) {
-        console.error('[Checkout Flow] Failed to fetch listing details for decoration:', listingsErr);
+        console.error('[Checkout Flow] Failed to fetch listing details:', listingsErr);
         return fail("INTERNAL", `Failed to resolve listings: ${listingsErr.message}`);
       }
 
@@ -475,80 +528,85 @@ export const supabaseApi: Api = {
         return acc;
       }, {});
 
-      // Calculate total subtotal and populate order items
+      // 4. Calculate prices & fees in PAISE first, prepare the list of items
       let totalSubtotalPaise = 0;
-      
-      // Get created order items
-      const { data: createdItems, error: itemsFetchErr } = await supabase
-        .from('order_items')
-        .select('id, listing_id')
-        .eq('order_id', orderId);
-        
-      if (itemsFetchErr) {
-        console.error('[Checkout Flow] Failed to query created order items:', itemsFetchErr);
-        return fail("INTERNAL", `Failed to retrieve order items: ${itemsFetchErr.message}`);
-      }
-        
-      for (const item of (createdItems || [])) {
-        const inputItem = req.items.find(it => it.listing_id === item.listing_id);
-        const listing = listingsMap[item.listing_id];
-        if (inputItem && listing) {
-          const packKg = inputItem.pack_kg;
-          const qty = inputItem.qty;
-          const pricePerKg = Number(listing.price_per_kg);
-          const subtotalPaise = Math.round(pricePerKg * packKg * qty * 100);
-          totalSubtotalPaise += subtotalPaise;
-          
-          const { error: itemUpdateErr } = await supabase
-            .from('order_items')
-            .update({
-              farmer_id: listing.farmers?.id,
-              variety: listing.rice_variety,
-              pack_kg: packKg,
-              qty: qty,
-              subtotal_paise: subtotalPaise,
-              farmer_name: listing.farmers?.profiles?.full_name || "Farmer",
-              village_name: listing.farmers?.villages?.name || "Village",
-              photo_url: (listing.listing_images && listing.listing_images[0]?.image_url) || null,
-            })
-            .eq('id', item.id);
-
-          if (itemUpdateErr) {
-            console.error('[Checkout Flow] Failed to update order item details:', itemUpdateErr);
-            return fail("INTERNAL", `Failed to update order item: ${itemUpdateErr.message}`);
-          }
+      const itemsForRpc = req.items.map(it => {
+        const listing = listingsMap[it.listing_id];
+        if (!listing) {
+          throw new Error(`Listing ${it.listing_id} not found in fetch map`);
         }
+        // DB price_per_kg is RUPEES → convert to paise
+        const pricePerKgPaise = Math.round(Number(listing.price_per_kg) * 100);
+        const subtotalPaise = pricePerKgPaise * it.pack_kg * it.qty;
+        totalSubtotalPaise += subtotalPaise;
+
+        return {
+          listing_id: it.listing_id,
+          farmer_id: listing.farmers?.id,
+          variety: listing.rice_variety,
+          pack_kg: it.pack_kg,
+          qty: it.qty,
+          price_per_kg: Number(listing.price_per_kg),
+          subtotal_paise: subtotalPaise,
+          farmer_name: listing.farmers?.profiles?.full_name || "Farmer",
+          village_name: listing.farmers?.villages?.name || "Village",
+          photo_url: (listing.listing_images && listing.listing_images[0]?.image_url) || null
+        };
+      });
+
+      // Pricing constants (paise):
+      const HOME_DELIVERY_FEE_PAISE = 3000;  // ₹30
+      const CITY_PICKUP_FEE_PAISE = 5000;    // ₹50
+      const COD_FEE_PAISE = 3000;            // ₹30
+      const FREE_DELIVERY_THRESHOLD_PAISE = 200000; // ₹2,000
+
+      let deliveryFeePaise = 0;
+      if (req.fulfillment_type === 'city_pickup_point') {
+        deliveryFeePaise = CITY_PICKUP_FEE_PAISE;
+      } else if (req.fulfillment_type === 'home_delivery') {
+        deliveryFeePaise = totalSubtotalPaise >= FREE_DELIVERY_THRESHOLD_PAISE ? 0 : HOME_DELIVERY_FEE_PAISE;
       }
-      
+      const codFeePaise = req.payment_method === 'cod' ? COD_FEE_PAISE : 0;
+      const commissionPaise = Math.floor(totalSubtotalPaise * 0.1);
+      const totalPaise = totalSubtotalPaise + deliveryFeePaise + codFeePaise;
+
+      // Convert to RUPEES for DB storage
       const subtotalRupees = totalSubtotalPaise / 100;
-      // Calculate delivery fee, cod fee, commission, etc. in Rupees
-      const deliveryFeeRupees = req.fulfillment_type === 'farm_pickup' ? 0 : 30; // standard delivery fee in Rupees
-      const codFeeRupees = req.payment_method === 'cod' ? 30 : 0; // standard COD fee in Rupees
-      const commissionRupees = subtotalRupees * 0.1; // 10% commission
-      const totalRupees = subtotalRupees + deliveryFeeRupees + codFeeRupees;
+      const deliveryFeeRupees = deliveryFeePaise / 100;
+      const codFeeRupees = codFeePaise / 100;
+      const commissionRupees = commissionPaise / 100;
+      const totalRupees = totalPaise / 100;
 
-      const { error: orderUpdateErr } = await supabase.from('orders').update({
-        order_number: orderNumber,
-        fulfillment_type: req.fulfillment_type,
-        delivery_address: req.delivery_address,
-        payment_method: req.payment_method,
-        payment_status: req.payment_method === 'cod' ? 'pending' : 'pending',
-        subtotal: subtotalRupees,
-        delivery_fee: deliveryFeeRupees,
-        cod_fee: codFeeRupees,
-        commission_amount: commissionRupees,
-        total_amount: totalRupees,
-        delivery_date: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days from now
-      }).eq('id', orderId);
+      // Delivery date = next Saturday
+      const deliveryDate = getNextSaturday();
 
-      if (orderUpdateErr) {
-        console.error('[Checkout Flow] Failed to update order metadata:', orderUpdateErr);
-        return fail("INTERNAL", `Failed to complete order details update: ${orderUpdateErr.message}`);
+      // 5. Invoke atomic creation function in Supabase
+      console.log('[Checkout Flow] Calling create_order_atomic RPC...');
+      const { data: orderId, error: rpcErr } = await supabase.rpc('create_order_atomic', {
+        p_customer_id: userId,
+        p_order_number: orderNumber,
+        p_fulfillment_type: req.fulfillment_type,
+        p_delivery_address: req.delivery_address || null,
+        p_payment_method: req.payment_method,
+        p_payment_status: 'pending',
+        p_phone: req.phone || '',
+        p_subtotal: subtotalRupees,
+        p_delivery_fee: deliveryFeeRupees,
+        p_cod_fee: codFeeRupees,
+        p_commission: commissionRupees,
+        p_total_amount: totalRupees,
+        p_delivery_date: deliveryDate.toISOString(),
+        p_items: itemsForRpc
+      });
+
+      if (rpcErr) {
+        console.error('[Checkout Flow] create_order_atomic RPC failed:', rpcErr);
+        return fail("CONFLICT", rpcErr.message);
       }
-      console.log('[Checkout Flow] Database records updated successfully.');
+      console.log(`[Checkout Flow] Atomic transaction succeeded. Created order ID: ${orderId}`);
 
-      // Trigger order email sending asynchronously
-      console.log('[Checkout Flow] Dispatching notification emails asynchronously...');
+      // 6. Trigger order confirmation emails asynchronously
+      console.log('[Checkout Flow] Dispatching confirmation emails...');
       try {
         fetch('/api/orders/confirm-email', {
           method: 'POST',
@@ -563,11 +621,10 @@ export const supabaseApi: Api = {
         console.error('[Checkout Flow] Failed to trigger order confirmation emails:', err);
       }
       
-      const amount = totalSubtotalPaise + (deliveryFeeRupees + codFeeRupees) * 100;
       return ok({ 
         orderId, 
         orderNumber, 
-        amount, 
+        amount: totalPaise,  // PAISE
         payment_method: req.payment_method,
         razorpayOrderId: req.payment_method !== 'cod' ? "rzp_" + orderId : undefined,
         razorpayKey: "rzp_test_mock" 
@@ -575,9 +632,29 @@ export const supabaseApi: Api = {
     },
     async verifyPayment(req) {
       console.log(`[Checkout Flow] Verifying payment for order ID: ${req.orderId}`);
+      
+      const { data: currentOrder } = await supabase
+        .from("orders")
+        .select("status_history")
+        .eq("id", req.orderId)
+        .single();
+        
+      const history = currentOrder?.status_history || [];
+      if (!history.some((h: any) => h.status === 'confirmed')) {
+        history.push({
+          status: 'confirmed',
+          at: new Date().toISOString(),
+          by: 'payment_processor'
+        });
+      }
+
       const { data: order, error } = await supabase
         .from('orders')
-        .update({ payment_status: 'paid', status: 'confirmed' })
+        .update({ 
+          payment_status: 'paid', 
+          status: 'confirmed', 
+          status_history: history 
+        })
         .eq('id', req.orderId)
         .select('order_number')
         .single();
@@ -595,43 +672,6 @@ export const supabaseApi: Api = {
         .select('*, order_items(*, listings(*))')
         .order('created_at', { ascending: false });
       
-      const mapOrderItem = (it: any): OrderItem => {
-        const listing = it.listings;
-        return {
-          listing_id: it.listing_id,
-          farmer_id: it.farmer_id || "",
-          variety: (it.variety || listing?.rice_variety || "other") as RiceVariety,
-          varietyName: listing?.rice_variety_other || undefined,
-          variety_other: listing?.rice_variety_other || null,
-          pack_kg: Number(it.pack_kg || 0),
-          qty: Number(it.qty || 0),
-          price_per_kg_paise: Number(it.price_per_kg || 0) * 100,
-          subtotal_paise: Number(it.subtotal_paise || 0),
-          farmer_name: it.farmer_name || "",
-          village_name: it.village_name || "",
-          photo_url: it.photo_url || null,
-        };
-      };
-
-      const mapOrder = (o: any): Order => ({
-        id: o.id,
-        order_number: o.order_number,
-        fulfillment_type: o.fulfillment_type || "home_delivery",
-        delivery_address: o.delivery_address || null,
-        delivery_date: o.delivery_date || o.created_at,
-        subtotal: Number(o.subtotal || o.total_amount || 0) * 100,
-        delivery_fee: Number(o.delivery_fee || 0) * 100,
-        cod_fee: Number(o.cod_fee || 0) * 100,
-        total: Number(o.total_amount || 0) * 100,
-        commission_amount: Number(o.commission_amount || 0) * 100,
-        payment_method: o.payment_method || "cod",
-        payment_status: o.payment_status || "pending",
-        status: o.status || "pending",
-        status_history: o.status_history || [],
-        placed_at: o.created_at,
-        items: (o.order_items || []).map(mapOrderItem),
-      });
-
       return ok((data || []).map(mapOrder));
     },
     async get(orderNumber) {
@@ -642,44 +682,6 @@ export const supabaseApi: Api = {
         .single();
       
       if (!data) return fail("NOT_FOUND", "Order not found");
-      
-      const mapOrderItem = (it: any): OrderItem => {
-        const listing = it.listings;
-        return {
-          listing_id: it.listing_id,
-          farmer_id: it.farmer_id || "",
-          variety: (it.variety || listing?.rice_variety || "other") as RiceVariety,
-          varietyName: listing?.rice_variety_other || undefined,
-          variety_other: listing?.rice_variety_other || null,
-          pack_kg: Number(it.pack_kg || 0),
-          qty: Number(it.qty || 0),
-          price_per_kg_paise: Number(it.price_per_kg || 0) * 100,
-          subtotal_paise: Number(it.subtotal_paise || 0),
-          farmer_name: it.farmer_name || "",
-          village_name: it.village_name || "",
-          photo_url: it.photo_url || null,
-        };
-      };
-
-      const mapOrder = (o: any): Order => ({
-        id: o.id,
-        order_number: o.order_number,
-        fulfillment_type: o.fulfillment_type || "home_delivery",
-        delivery_address: o.delivery_address || null,
-        delivery_date: o.delivery_date || o.created_at,
-        subtotal: Number(o.subtotal || o.total_amount || 0) * 100,
-        delivery_fee: Number(o.delivery_fee || 0) * 100,
-        cod_fee: Number(o.cod_fee || 0) * 100,
-        total: Number(o.total_amount || 0) * 100,
-        commission_amount: Number(o.commission_amount || 0) * 100,
-        payment_method: o.payment_method || "cod",
-        payment_status: o.payment_status || "pending",
-        status: o.status || "pending",
-        status_history: o.status_history || [],
-        placed_at: o.created_at,
-        items: (o.order_items || []).map(mapOrderItem),
-      });
-
       return ok(mapOrder(data));
     }
   },
@@ -703,12 +705,21 @@ export const supabaseApi: Api = {
       if (!auth.session) return fail("UNAUTHORIZED", "Not signed in");
       const { data, error } = await supabase.from('profiles').select('*').eq('id', auth.session.user.id).single();
       if (error) return fail("INTERNAL", error.message);
+      
+      let email = data.email || auth.session.user.email || null;
+      if (auth.session.user.email && !data.email) {
+        await supabase
+          .from('profiles')
+          .update({ email: auth.session.user.email })
+          .eq('id', auth.session.user.id);
+      }
+
       const addr = data.delivery_address as any;
       return ok({
         id: data.id, 
         phone: data.phone_number || "", 
         name: data.full_name || "", 
-        email: auth.session.user.email || null,
+        email: email,
         addresses: addr ? [addr] : [], 
         default_address_idx: 0,
         preferred_language: data.preferred_language,
@@ -807,8 +818,10 @@ export const supabaseApi: Api = {
         });
       if (farmerErr) return fail("INTERNAL", farmerErr.message);
 
-      // 4. Create first listing
+      // 4. Create first listing — price_per_kg stored in RUPEES
       const dbVariety = req.first_listing.variety === "other" && req.first_listing.variety_other ? req.first_listing.variety_other : req.first_listing.variety;
+      // Input price is in PAISE → divide by 100 to store as RUPEES
+      const priceRupees = req.first_listing.price_per_kg / 100;
       const { data: newListing, error: listingErr } = await supabase
         .from('listings')
         .insert({
@@ -816,7 +829,7 @@ export const supabaseApi: Api = {
           title: `${req.name}'s Rice`,
           description: req.first_listing.description || "",
           rice_variety: dbVariety,
-          price_per_kg: req.first_listing.price_per_kg / 100, // DB stores unit price in Rupees
+          price_per_kg: priceRupees,  // RUPEES in DB
           stock_kg: req.first_listing.available_kg,
           is_active: true,
           type: req.first_listing.type,
@@ -826,7 +839,9 @@ export const supabaseApi: Api = {
           harvest_season: req.first_listing.harvest_season || 'kharif',
           is_milled: req.first_listing.is_milled,
           milled_on: req.first_listing.milled_on || null,
-          pack_sizes: req.first_listing.pack_sizes
+          pack_sizes: req.first_listing.pack_sizes,
+          // retail_paise = price_paise + ₹30 margin = price_paise + 3000
+          retail_paise: req.first_listing.price_per_kg + 3000,  // PAISE
         })
         .select()
         .single();
@@ -883,6 +898,7 @@ export const supabaseApi: Api = {
           qty,
           variety,
           order_id,
+          subtotal_paise,
           orders (
             order_number,
             status,
@@ -899,11 +915,16 @@ export const supabaseApi: Api = {
       if (itemsErr) return fail("INTERNAL", itemsErr.message);
 
       const nonCancelledItems = (orderItems || []).filter((item: any) => item.orders?.status !== 'cancelled');
+      
+      // Use subtotal_paise directly (already in PAISE) and apply 10% commission deduction
       const totalRevenue = nonCancelledItems.reduce((sum, item) => {
-        const totalItemRupees = Number(item.quantity_kg) * Number(item.price_per_kg);
-        const commissionAmount = totalItemRupees * 0.10;
-        const earningsPaise = Math.round((totalItemRupees - commissionAmount) * 100);
-        return sum + earningsPaise;
+        const subtotalPaise = Number(item.subtotal_paise || 0);
+        // If subtotal_paise is 0 (old orders), calculate from price_per_kg (Rupees) * quantity_kg
+        const effectiveSubtotalPaise = subtotalPaise > 0 
+          ? subtotalPaise 
+          : Math.round(Number(item.quantity_kg) * Number(item.price_per_kg) * 100);
+        const commissionPaise = Math.floor(effectiveSubtotalPaise * 0.1);
+        return sum + effectiveSubtotalPaise - commissionPaise;
       }, 0);
 
       const uniqueOrderIds = new Set((orderItems || []).map(item => item.order_id));
@@ -911,19 +932,28 @@ export const supabaseApi: Api = {
       const formattedOrders: FarmerOrderRow[] = (orderItems || []).map((item: any) => {
         const order = item.orders;
         const customerName = order?.profiles?.full_name || "Customer";
-        const totalItemRupees = Number(item.quantity_kg) * Number(item.price_per_kg);
-        const commissionAmount = totalItemRupees * 0.10;
-        const earningsPaise = Math.round((totalItemRupees - commissionAmount) * 100);
+        const subtotalPaise = Number(item.subtotal_paise || 0);
+        const effectiveSubtotalPaise = subtotalPaise > 0
+          ? subtotalPaise
+          : Math.round(Number(item.quantity_kg) * Number(item.price_per_kg) * 100);
+        const commissionPaise = Math.floor(effectiveSubtotalPaise * 0.1);
+        const earningsPaise = effectiveSubtotalPaise - commissionPaise;
+        
+        // Map DB status to valid OrderStatus values
+        const rawStatus = order?.status || "placed";
+        const validStatus: OrderStatus = (["placed","confirmed","milling","ready","picked_up","in_transit","delivered","cancelled","disputed"].includes(rawStatus) 
+          ? rawStatus 
+          : "placed") as OrderStatus;
         
         return {
           order_number: order?.order_number || "GL-XXXXXX",
           variety: item.variety as RiceVariety,
-          pack_kg: Number(item.pack_kg) || 10,
+          pack_kg: Number(item.pack_kg) || Number(item.quantity_kg) || 1,
           qty: Number(item.qty) || 1,
           customer_label: customerName,
           pickup_date: order?.delivery_date || new Date().toISOString(),
           earnings_paise: earningsPaise,
-          status: order?.status || "pending"
+          status: validStatus
         };
       });
 
@@ -990,12 +1020,14 @@ export const supabaseApi: Api = {
       if (!auth.session) return fail("UNAUTHORIZED", "Not signed in");
       
       const dbVariety = input.variety === "other" && input.variety_other ? input.variety_other : input.variety;
+      // Input price is PAISE → store as RUPEES in DB
+      const priceRupees = input.price_per_kg / 100;
       const insertData = {
         farmer_id: auth.session.user.id,
         title: dbVariety.split('_').map((w: string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' '),
         description: input.description,
         rice_variety: dbVariety,
-        price_per_kg: input.price_per_kg / 100, // convert paise to Rupees
+        price_per_kg: priceRupees,  // RUPEES in DB
         stock_kg: input.available_kg,
         type: input.type,
         is_organic: input.is_organic,
@@ -1005,7 +1037,7 @@ export const supabaseApi: Api = {
         is_milled: input.is_milled,
         milled_on: input.milled_on || new Date().toISOString(),
         pack_sizes: input.pack_sizes,
-        retail_paise: input.price_per_kg + 3000,
+        retail_paise: input.price_per_kg + 3000,  // PAISE in DB
         is_active: true
       };
 
@@ -1032,8 +1064,10 @@ export const supabaseApi: Api = {
       }
       if (input.description !== undefined) updateData.description = input.description;
       if (input.price_per_kg !== undefined) {
+        // Input is PAISE → convert to RUPEES for DB
         updateData.price_per_kg = input.price_per_kg / 100;
-        updateData.pack_sizes = input.pack_sizes;
+        updateData.retail_paise = input.price_per_kg + 3000;
+        if (input.pack_sizes) updateData.pack_sizes = input.pack_sizes;
       }
       if (input.available_kg !== undefined) updateData.stock_kg = input.available_kg;
       if (input.type !== undefined) updateData.type = input.type;
@@ -1062,16 +1096,40 @@ export const supabaseApi: Api = {
       return ok({ ok: true });
     },
     async orderAction(orderNumber, action) {
-      let statusStr: string = "pending";
-      if (action === "confirm") statusStr = "confirmed";
-      else if (action === "packed") statusStr = "packed";
-      else if (action === "out_for_delivery") statusStr = "out_for_delivery";
-      else if (action === "delivered") statusStr = "delivered";
-      else if (action === "cancel") statusStr = "cancelled";
+      // Map FarmerOrderAction to valid OrderStatus values
+      const statusMap: Record<string, OrderStatus> = {
+        confirm: "confirmed",
+        packed: "milling",
+        out_for_delivery: "in_transit",
+        delivered: "delivered",
+        cancel: "cancelled",
+        pending: "placed",
+      };
+      const statusStr = statusMap[action] || "placed";
+
+      // Fetch current status_history
+      const { data: currentOrder } = await supabase
+        .from("orders")
+        .select("status_history")
+        .eq("order_number", orderNumber)
+        .single();
+      
+      const history = currentOrder?.status_history || [];
+      if (!history.some((h: any) => h.status === statusStr)) {
+        history.push({
+          status: statusStr,
+          at: new Date().toISOString(),
+          by: "farmer"
+        });
+      }
 
       const { data, error } = await supabase
         .from("orders")
-        .update({ status: statusStr, updated_at: new Date().toISOString() })
+        .update({ 
+          status: statusStr, 
+          status_history: history,
+          updated_at: new Date().toISOString() 
+        })
         .eq("order_number", orderNumber)
         .select()
         .single();
@@ -1104,6 +1162,7 @@ export const supabaseApi: Api = {
           .select('total_amount, customer_id');
           
         const totalOrders = allOrders || [];
+        // total_amount stored in RUPEES → convert to PAISE
         const gmvPaise = totalOrders.reduce((sum, o) => sum + Math.round(Number(o.total_amount) * 100), 0);
         const aovPaise = totalOrders.length > 0 ? Math.round(gmvPaise / totalOrders.length) : 0;
         
@@ -1267,7 +1326,6 @@ export const supabaseApi: Api = {
         
       if (farmersErr) return fail("INTERNAL", farmersErr.message);
       
-      // Create farmer mapping
       const farmerMap: Record<string, { village_id: string; village_name: string; hub_address: string }> = {};
       (farmers || []).forEach((f: any) => {
         if (f.id && f.villages) {
@@ -1324,7 +1382,6 @@ export const supabaseApi: Api = {
         });
       });
       
-      // Convert pickupsMap to array
       const pickups = Object.values(pickupsMap).map(p => {
         const farmerOrders = Object.values(p.farmer_orders_map).map(fo => ({
           farmer_id: fo.farmer_id,
@@ -1346,7 +1403,6 @@ export const supabaseApi: Api = {
         };
       });
       
-      // 4. Construct deliveries
       const deliveries = orders.map(order => {
         const addr = order.delivery_address as any;
         const addressLabel = addr 
@@ -1415,10 +1471,7 @@ export const supabaseApi: Api = {
           }
           return fo;
         });
-        return {
-          ...p,
-          farmer_orders: updatedFarmerOrders
-        };
+        return { ...p, farmer_orders: updatedFarmerOrders };
       });
       
       const { error: updateErr } = await supabase
@@ -1428,21 +1481,14 @@ export const supabaseApi: Api = {
         
       if (updateErr) return fail("INTERNAL", updateErr.message);
       
-      // Update the status of the associated orders and restore inventory on reject
       if (input.visual_quality === 'reject') {
         for (const orderNum of input.order_numbers) {
-          await supabase
-            .from('orders')
-            .update({ status: 'cancelled' })
-            .eq('order_number', orderNum);
+          await supabase.from('orders').update({ status: 'cancelled' }).eq('order_number', orderNum);
           await restoreOrderStockByNumber(orderNum);
         }
       } else {
         for (const orderNum of input.order_numbers) {
-          await supabase
-            .from('orders')
-            .update({ status: 'ready' })
-            .eq('order_number', orderNum);
+          await supabase.from('orders').update({ status: 'ready' }).eq('order_number', orderNum);
         }
       }
       
@@ -1468,8 +1514,9 @@ export const supabaseApi: Api = {
       if (error) return fail("INTERNAL", error.message);
       
       const rows = (data || []).map((p: any) => {
+        // payout amount stored in RUPEES → convert to PAISE
         const net = Math.round(Number(p.amount) * 100);
-        const gross = Math.round((Number(p.amount) / 0.95) * 100);
+        const gross = Math.round((Number(p.amount) / 0.9) * 100);
         const commission = gross - net;
         return {
           farmer_id: p.farmer_id,

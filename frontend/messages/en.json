@@ -294,7 +294,8 @@
     "cod": "COD",
     "total": "Total",
     "paymentStatus": {
-      "pending": "Payment pending",
+      "pending": "Awaiting payment",
+      "cod_pending": "Cash on delivery — pay on arrival",
       "paid": "Paid",
       "refunded": "Refunded",
       "failed": "Payment failed"

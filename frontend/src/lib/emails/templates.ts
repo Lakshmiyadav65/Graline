@@ -17,6 +17,10 @@ export function generateCustomerOrderEmail({
   deliveryAddress,
   supportEmail,
   supportPhone,
+  subtotal,
+  deliveryFee,
+  codFee,
+  total,
 }: {
   orderNumber: string;
   orderDate: string;
@@ -33,6 +37,10 @@ export function generateCustomerOrderEmail({
   deliveryAddress: string;
   supportEmail: string;
   supportPhone: string;
+  subtotal: number;
+  deliveryFee: number;
+  codFee: number;
+  total: number;
 }): string {
   const itemsHtml = productInfo
     .map(
@@ -49,8 +57,6 @@ export function generateCustomerOrderEmail({
   `
     )
     .join('');
-
-  const totalAmount = productInfo.reduce((acc, curr) => acc + curr.subtotal, 0);
 
   return `
     <!DOCTYPE html>
@@ -106,7 +112,7 @@ export function generateCustomerOrderEmail({
               </tr>
               <tr>
                 <td class="label">Payment Status:</td>
-                <td><span style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">${paymentStatus}</span> (${paymentMethod})</td>
+                <td><span style="background: #e2e8f0; padding: 2px 6px; border-radius: 4px; font-size: 11px; font-weight: bold; text-transform: uppercase;">${paymentStatus === 'pending' && paymentMethod === 'cod' ? 'Cash on Delivery' : paymentStatus}</span> (${paymentMethod})</td>
               </tr>
             </table>
           </div>
@@ -136,9 +142,23 @@ export function generateCustomerOrderEmail({
             </thead>
             <tbody>
               ${itemsHtml}
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #666;">Subtotal</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333; text-align: right; font-family: monospace;">${formatINR(subtotal)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #666;">Delivery Charge</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333; text-align: right; font-family: monospace;">${deliveryFee > 0 ? formatINR(deliveryFee) : 'Free'}</td>
+              </tr>
+              ${codFee > 0 ? `
+              <tr>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #666;">COD Handling Fee</td>
+                <td style="padding: 10px 0; border-bottom: 1px solid #e0e0e0; font-size: 14px; color: #333; text-align: right; font-family: monospace;">${formatINR(codFee)}</td>
+              </tr>
+              ` : ''}
               <tr class="total-row">
-                <td>Total Paid</td>
-                <td style="text-align: right; font-family: monospace;">${formatINR(totalAmount)}</td>
+                <td style="padding: 16px 0; font-size: 16px; font-weight: bold; color: #1b4332;">Total</td>
+                <td style="padding: 16px 0; font-size: 16px; font-weight: bold; color: #1b4332; text-align: right; font-family: monospace;">${formatINR(total)}</td>
               </tr>
             </tbody>
           </table>
@@ -166,6 +186,10 @@ export function generateOperationsOrderEmail({
   farmerInfo,
   productInfo,
   deliveryAddress,
+  subtotal,
+  deliveryFee,
+  codFee,
+  total,
 }: {
   orderNumber: string;
   orderDate: string;
@@ -179,6 +203,10 @@ export function generateOperationsOrderEmail({
     subtotal: number;
   }>;
   deliveryAddress: string;
+  subtotal: number;
+  deliveryFee: number;
+  codFee: number;
+  total: number;
 }): string {
   const itemsHtml = productInfo
     .map(
@@ -197,8 +225,6 @@ export function generateOperationsOrderEmail({
   `
     )
     .join('');
-
-  const totalAmount = productInfo.reduce((acc, curr) => acc + curr.subtotal, 0);
 
   return `
     <!DOCTYPE html>
@@ -282,11 +308,28 @@ export function generateOperationsOrderEmail({
             </thead>
             <tbody>
               ${itemsHtml}
+              <tr>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; font-weight: bold;">Subtotal</td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5;"></td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; text-align: right; font-family: monospace;">${formatINR(subtotal)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; font-weight: bold;">Delivery Charge</td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5;"></td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; text-align: right; font-family: monospace;">${deliveryFee > 0 ? formatINR(deliveryFee) : 'Free'}</td>
+              </tr>
+              ${codFee > 0 ? `
+              <tr>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; font-weight: bold;">COD Handling Fee</td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5;"></td>
+                <td style="padding: 8px 10px; font-size: 13px; border-bottom: 1px solid #f0f2f5; text-align: right; font-family: monospace;">${formatINR(codFee)}</td>
+              </tr>
+              ` : ''}
             </tbody>
           </table>
 
           <div class="total-box">
-            Total Amount: ${formatINR(totalAmount)}
+            Total Amount: ${formatINR(total)}
           </div>
         </div>
       </div>

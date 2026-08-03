@@ -103,7 +103,11 @@ function OrderDetailInner() {
           <div className="bg-cream border border-line rounded-card-lg p-6">
             <h3 className="font-serif text-[18px] font-medium mb-3">{t("payment")}</h3>
             <p className="text-[14px] text-ink-soft">{t(`paymentMethods.${order.payment_method}`)}</p>
-            <p className="text-[13px] text-muted mt-1">{t(`paymentStatus.${order.payment_status}`)}</p>
+            <p className="text-[13px] text-muted mt-1">
+              {order.payment_method === "cod" && order.payment_status === "pending"
+                ? t("paymentStatus.cod_pending")
+                : t(`paymentStatus.${order.payment_status}`)}
+            </p>
             <div className="mt-3 pt-3 border-t border-line-soft text-[13px] space-y-1">
               <div className="flex justify-between"><span className="text-muted">{t("subtotal")}</span><span className="font-mono">{formatRupees(order.subtotal)}</span></div>
               <div className="flex justify-between"><span className="text-muted">{t("deliveryFee")}</span><span className="font-mono">{order.delivery_fee === 0 ? tCheckout("free") : formatRupees(order.delivery_fee)}</span></div>

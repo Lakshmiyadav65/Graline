@@ -15,6 +15,7 @@ export interface Database {
           role: 'customer' | 'farmer' | 'admin'
           full_name: string | null
           phone_number: string | null
+          email: string | null
           preferred_language: 'English' | 'Telugu' | 'Hindi' | 'Tamil' | 'Kannada' | null
           delivery_address: Json | null
           created_at: string

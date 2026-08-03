@@ -1,10 +1,12 @@
 import { Pill } from "@/components/ui/Pill";
-import { orderStatusTone, ORDER_STATUS_LABEL, VARIETY_LABEL } from "@/lib/labels";
+import { orderStatusTone } from "@/lib/labels";
 import { formatRupees, formatDate } from "@/lib/format";
 import type { FarmerOrderRow } from "@/lib/api/types";
+import { useTranslations } from "@/lib/translations";
 
 export function OrderRow({ order }: { order: FarmerOrderRow }) {
-  const varietyLabel = VARIETY_LABEL[order.variety as keyof typeof VARIETY_LABEL] ?? order.variety;
+  const tLabels = useTranslations("labels");
+  const varietyLabel = tLabels(`variety.${order.variety}`);
 
   return (
     <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[90px_1.4fr_1fr_1fr_110px] gap-3 sm:gap-3.5 items-center p-4 border border-line bg-cream rounded-card">
@@ -22,7 +24,7 @@ export function OrderRow({ order }: { order: FarmerOrderRow }) {
         Earnings <strong>{formatRupees(order.earnings_paise)}</strong>
       </div>
       <span className="justify-self-end">
-        <Pill tone={orderStatusTone(order.status)}>{ORDER_STATUS_LABEL[order.status]}</Pill>
+        <Pill tone={orderStatusTone(order.status)}>{tLabels(`orderStatus.${order.status}`)}</Pill>
       </span>
     </div>
   );

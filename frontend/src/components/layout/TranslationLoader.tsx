@@ -25,12 +25,9 @@ export function TranslationLoader() {
   useEffect(() => {
     const currentSaved = localStorage.getItem("grainline_lang") || "en";
     if (currentSaved !== "en") {
-      setLoading(true);
-      // Wait a short delay for Google Translate mutation observer to catch up on the new page DOM
-      const timer = setTimeout(() => {
-        setLoading(false);
-      }, 400);
-      return () => clearTimeout(timer);
+      // Force a hard reload on navigation to avoid React hydration conflicts,
+      // partial translations, and browser page freezes.
+      window.location.reload();
     }
   }, [pathname]);
 
